@@ -1,0 +1,152 @@
+body {
+    font-family: 'Prompt', sans-serif;
+    background-color: #f4f8fb;
+    color: #343a40;
+}
+
+.bg-kplus-green {
+    background-color: #0aad3f !important;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.nav-shadow {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+nav {
+    position: relative;
+}
+
+nav .text-lg {
+    text-align: center;
+    flex-grow: 1;
+}
+
+/* ลบ underline ของลิงค์ทั้งหมด */
+a {
+    text-decoration: none !important;
+}
+
+/* ตั้งค่าเมนูมือถือให้มีการแสดงผลที่ชัดเจน */
+#mobile-menu {
+    overflow: hidden;
+    height: 0;
+    transition: height 0.4s ease;
+}
+
+#mobile-menu.active {
+    height: auto;
+    max-height: 1000px; /* ตั้งให้มากพอครอบคลุมข้อความทั้งหมด */
+}
+
+#mobile-menu-btn {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: white;
+    font-size: 24px;
+}
+
+#mobile-menu-btn:hover {
+    transform: scale(1.1);
+}
+
+.menu-link {
+    display: block;
+    padding: 10px 15px;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.menu-link:hover, .menu-link.active {
+    background-color: #099c38;
+}
+
+.btn-rounded {
+    border-radius: 20px;
+    background-color: #0aad3f;
+    color: white;
+    padding: 8px 16px;
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+.btn-rounded:hover {
+    background-color: #099c38;
+    transform: scale(1.05);
+}
+
+.card, .card-header {
+    border-radius: 15px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+/* สถานะเครดิตสำหรับคอม */
+.credit-status {
+    font-size: 0.9rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+}
+
+/* Responsive Navbar adjustments */
+@media (max-width: 768px) {
+    nav .container {
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: space-between !important;
+    }
+
+    nav .text-lg {
+        text-align: left;
+        font-size: 1rem;
+    }
+
+    .credit-status {
+        margin-top: 0;
+        position: static !important;
+    }
+
+    #mobile-menu-btn {
+        margin-right: 5px;
+    }
+}
+
+.faq-item {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+}
+
+ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+section {
+    padding: 20px;
+    background-color: #f9fafb;
+    border-radius: 15px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.collapse .card.card-body {
+    background-color: #ffffff !important;
+    color: #343a40 !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.collapse .card.card-body .form-label,
+.collapse .card.card-body input,
+.collapse .card.card-body button {
+    color: #343a40 !important;
+}
+
+.collapse {
+    visibility: visible !important;
+}

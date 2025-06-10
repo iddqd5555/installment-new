@@ -1,0 +1,53 @@
+:root {
+    --primary-green: #1e8e3e;
+}
+
+.btn-success, .text-success {
+    background-color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+}
+
+.card {
+    border-radius: 12px;
+    border: none;
+}
+
+.card-img-top {
+    border-radius: 12px 12px 0 0;
+    height: 250px;
+    object-fit: cover;
+}
+
+.bg-kplus-green {
+    background-color: #09aa5c;
+}
+#mobile-menu {
+    height: 0;
+    overflow: hidden;
+}
+.transition-height {
+    transition: height 0.5s ease;
+}
+
+#mobile-menu a {
+    color: white;
+    transition: background-color 0.3s;
+}
+
+#mobile-menu a:hover {
+    background-color: #05753d;
+}
+
+.btn-outline-light {
+    color: white;
+    border-color: white;
+}
+
+.btn-outline-light:hover {
+    background-color: white;
+    color: #09aa5c;
+}
+#content-wrapper {
+    transition: margin-top 0.3s ease;
+}
+
