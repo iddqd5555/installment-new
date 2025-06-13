@@ -9,22 +9,25 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('installment_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('installment_request_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->timestamp('paid_at')->useCurrent();
+            $table->decimal('amount_paid', 10, 2)->nullable();
+            $table->string('payment_status')->default('pending');
+            $table->string('status')->default('pending');
+            $table->string('admin_notes')->nullable();
+            $table->string('payment_proof')->nullable();
+            $table->date('payment_due_date')->nullable(); // ✅ ตรงนี้ต้องมี
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('installment_payments');
     }
+
 };

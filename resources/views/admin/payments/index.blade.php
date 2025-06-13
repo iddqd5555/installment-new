@@ -2,44 +2,44 @@
 
 @section('content')
 <div class="container py-5">
-    <h2>🔔 จัดการหลักฐานการชำระเงิน</h2>
+    <h3>📌 รายการสลิปที่รออนุมัติ</h3>
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
     <table class="table table-bordered">
         <thead class="table-success">
             <tr>
-                <th>ลูกค้า</th>
-                <th>จำนวนเงิน</th>
-                <th>วันครบกำหนด</th>
-                <th>หลักฐานการชำระ</th>
-                <th>สถานะ</th>
+                <th>ชื่อผู้ใช้</th>
+                <th>จำนวนเงินที่โอน</th>
+                <th>วันที่อัปโหลด</th>
+                <th>ดูสลิป</th>
                 <th>จัดการ</th>
             </tr>
         </thead>
         <tbody>
-        @foreach($payments as $payment)
+            @foreach($pendingPayments as $payment)
             <tr>
                 <td>{{ $payment->installmentRequest->user->name }}</td>
-                <td>{{ number_format($payment->amount, 2) }}</td>
-                <td>{{ $payment->due_date }}</td>
+                <td>{{ number_format($payment->amount_paid, 2) }} บาท</td>
+                <td>{{ $payment->created_at->format('d/m/Y H:i') }}</td>
                 <td>
-                    @if($payment->payment_proof)
-                        <a href="{{ asset($payment->payment_proof) }}" target="_blank">ดูหลักฐาน</a>
-                    @else
-                        ไม่มีหลักฐาน
-                    @endif
+                    <a href="{{ asset('storage/'.$payment->payment_proof) }}" target="_blank">ดูสลิป</a>
                 </td>
-                <td>{{ ucfirst($payment->payment_status) }}</td>
                 <td>
-                    <form method="POST" action="{{ route('admin.payments.approve', $payment->id) }}" style="display:inline;">
-                        @csrf @method('PATCH')
-                        <button class="btn btn-success btn-sm">อนุมัติ</button>
+                    <form action="{{ route('admin.payments.approve', $payment->id) }}" method="POST" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าจะอนุมัติสลิปจำนวน {{ number_format($payment->amount_paid, 2) }} บาทนี้?')">
+                        @csrf
+                        @method('PATCH')
+                        <button class="btn btn-success btn-sm">✅ อนุมัติ</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.payments.reject', $payment->id) }}" style="display:inline;">
-                        @csrf @method('PATCH')
-                        <button class="btn btn-danger btn-sm">ปฏิเสธ</button>
+
+                    <form action="{{ route('admin.payments.reject', $payment->id) }}" method="POST" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าจะปฏิเสธสลิปจำนวน {{ number_format($payment->amount_paid, 2) }} บาทนี้?')">
+                        @csrf
+                        @method('PATCH')
+                        <button class="btn btn-danger btn-sm">❌ ปฏิเสธ</button>
                     </form>
                 </td>
             </tr>
-        @endforeach
+            @endforeach
         </tbody>
     </table>
 </div>

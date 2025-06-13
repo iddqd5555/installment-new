@@ -12,6 +12,7 @@ use App\Notifications\InstallmentDueReminderNotification;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use App\Models\InstallmentPayment;
+use App\Notifications\PaymentStatusUpdated;
 
 
 class InstallmentAdminController extends Controller
@@ -117,25 +118,31 @@ class InstallmentAdminController extends Controller
     {
         $installmentRequest = InstallmentRequest::findOrFail($id);
 
+        $totalGoldPrice = $installmentRequest->approved_gold_price * $installmentRequest->gold_amount;
+        $interestAmount = $totalGoldPrice * ($installmentRequest->interest_rate / 100);
+        $totalWithInterest = $totalGoldPrice + $interestAmount;
+
         $installmentRequest->update([
             'status' => 'approved',
-            'approved_gold_price' => $this->fetchGoldPriceFromApi(),
+            'total_with_interest' => $totalWithInterest,
+            'remaining_amount' => $totalWithInterest,
+            'remaining_months' => $installmentRequest->installment_period,
+            'next_payment_date' => now()->addMonth()->startOfMonth(), // ทุกวันที่ 1 ของเดือน
         ]);
 
-        $startDate = Carbon::now();
+        // สร้างตารางการชำระรายเดือน
+        $monthlyPayment = $totalWithInterest / $installmentRequest->installment_period;
 
-        // สร้างตารางการผ่อนชำระล่วงหน้า
         for ($month = 1; $month <= $installmentRequest->installment_period; $month++) {
             InstallmentPayment::create([
                 'installment_request_id' => $installmentRequest->id,
-                'amount' => 0,
-                'fine' => 0,
-                'due_date' => $startDate->copy()->addMonths($month),
-                'payment_date' => null,
+                'amount' => $monthlyPayment,
+                'due_date' => now()->addMonths($month)->startOfMonth(),
+                'status' => 'pending',
             ]);
         }
 
-        return redirect()->back()->with('success', 'อนุมัติคำขอและสร้างตารางผ่อนชำระเรียบร้อยแล้ว');
+        return back()->with('success', 'อนุมัติและสร้างตารางผ่อนชำระสำเร็จ');
     }
 
     private function fetchGoldPriceFromApi()
@@ -158,65 +165,68 @@ class InstallmentAdminController extends Controller
         return 'แจ้งเตือนการชำระสำเร็จแล้ว!';
     }
 
-    // ใน method approvePayment()
+    public function payments()
+    {
+        $pendingPayments = InstallmentPayment::with('installmentRequest.user')
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
+        return view('admin.payments.index', compact('pendingPayments'));
+    }
+
+    // ในฟังก์ชัน approvePayment
     public function approvePayment($paymentId)
     {
         $payment = InstallmentPayment::findOrFail($paymentId);
-        $lateDays = Carbon::now()->diffInDays($payment->due_date, false);
-        if ($lateDays < 0) {
-            $payment->fine = abs($lateDays) * 50;
-        }
-
-        $payment->payment_status = 'approved';
-        $payment->payment_date = Carbon::now();
+        $payment->status = 'approved';
         $payment->save();
 
-        // ✅ เพิ่มบรรทัดนี้เพื่อแจ้งเตือน
-        $payment->installmentRequest->user->notify(new \App\Notifications\PaymentApprovedNotification($payment));
+        $installmentRequest = $payment->installmentRequest;
 
-        return redirect()->back()->with('success', 'อนุมัติการชำระเงินเรียบร้อยแล้ว!');
+        $installmentRequest->total_paid = $installmentRequest->installmentPayments()->where('status', 'approved')->sum('amount_paid');
+        
+        //คำนวณยอดคงเหลือ
+        $installmentRequest->remaining_amount = $installmentRequest->total_with_interest - $installmentRequest->total_paid;
+
+        $currentMonth = now()->format('Y-m');
+        $lastReducedMonth = optional($installmentRequest->last_month_reduced)->format('Y-m');
+
+        //เช็คว่าเดือนนี้ลดหรือยัง
+        if ($currentMonth !== $lastReducedMonth) {
+            $installmentRequest->remaining_months -= 1;
+            $installmentRequest->last_month_reduced = now();
+
+            //อัปเดตวันชำระครั้งถัดไป
+            $nextPayment = $installmentRequest->installmentPayments()
+                ->where('status', 'pending')
+                ->orderBy('payment_due_date', 'asc')
+                ->first();
+
+            if ($nextPayment) {
+                $installmentRequest->due_date = $nextPayment->payment_due_date;
+            }
+        }
+
+        $installmentRequest->save();
+
+        return redirect()->back()->with('success', 'อนุมัติการชำระเงินสำเร็จ');
     }
 
-    // ใน method rejectPayment()
     public function rejectPayment(Request $request, $paymentId)
     {
         $payment = InstallmentPayment::findOrFail($paymentId);
+
+        $payment->status = 'rejected';
         $payment->payment_status = 'rejected';
-        $payment->admin_notes = $request->admin_notes;
+        $payment->admin_notes = $request->admin_notes ?? null;
         $payment->save();
 
-        // ✅ เพิ่มบรรทัดนี้เพื่อแจ้งเตือน
         $payment->installmentRequest->user->notify(new \App\Notifications\PaymentRejectedNotification($payment));
 
         return redirect()->back()->with('success', 'ปฏิเสธหลักฐานการชำระเงินสำเร็จ!');
     }
 
-    public function approve($id)
-    {
-        $installmentRequest = InstallmentRequest::findOrFail($id);
+    // method อื่นๆ ที่คุณมีอยู่ก่อนหน้านี้ ให้เก็บไว้ทั้งหมด ไม่ต้องลบ
 
-        $response = Http::get('API_URL_HERE');
-        $goldPrice = $response->successful()
-                        ? $response->json()['gold_price']
-                        : null;
-
-        if ($goldPrice) {
-            $installmentRequest->update([
-                'status' => 'approved',
-                'approved_gold_price' => $goldPrice,
-            ]);
-
-            $installmentRequest->user->notify(new InstallmentRequestStatusNotification($installmentRequest));
-
-            return redirect()->back()->with('success', 'อนุมัติสำเร็จ ราคาทองถูกเก็บแล้ว!');
-        } else {
-            return redirect()->back()->with('error', 'ดึงราคาทองไม่สำเร็จ ลองใหม่อีกครั้งค่ะ');
-        }
-    }
-
-    public function payments()
-    {
-        $payments = \App\Models\InstallmentPayment::where('payment_status', 'pending')->latest()->get();
-        return view('admin.payments.index', compact('payments'));
-    }
 }

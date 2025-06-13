@@ -10,4 +10,7 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        outDir: 'public/build', // แก้ไขตรงนี้ชัดเจนที่สุด
+    },
 });

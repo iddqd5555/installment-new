@@ -63,15 +63,25 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const goldPrice = parseFloat('{{ str_replace(",", "", $goldPrices["ornament_sell"]) }}');
+    @if($goldPrices && isset($goldPrices["ornament_sell"]))
+        const goldPrice = parseFloat('{{ str_replace(",", "", $goldPrices["ornament_sell"]) }}');
+    @else
+        const goldPrice = 0;
+    @endif
+    
     const goldAmountInput = document.getElementById('gold_amount');
     const totalPriceInput = document.getElementById('total_price');
 
     goldAmountInput.addEventListener('input', function () {
         const goldAmount = parseFloat(this.value) || 0;
-        totalPriceInput.value = (goldAmount * goldPrice).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (goldPrice > 0) {
+            totalPriceInput.value = (goldAmount * goldPrice).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        } else {
+            totalPriceInput.value = 'ยังไม่มีข้อมูลราคาทอง';
+        }
     });
 });
 </script>
+
 
 @endsection

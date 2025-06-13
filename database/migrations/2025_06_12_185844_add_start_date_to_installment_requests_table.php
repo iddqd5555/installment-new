@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->string('status')->default('pending'); // default เป็น pending
+        Schema::table('installment_requests', function (Blueprint $table) {
+            $table->date('start_date')->nullable()->after('status');
         });
     }
 
     public function down()
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->dropColumn('status');
+        Schema::table('installment_requests', function (Blueprint $table) {
+            $table->dropColumn('start_date');
         });
     }
 

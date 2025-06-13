@@ -11,15 +11,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->date('due_date')->nullable()->after('amount');
+        Schema::table('installment_requests', function (Blueprint $table) {
+            $table->timestamp('last_month_reduced')->nullable()->change();
         });
     }
 
     public function down()
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->dropColumn('due_date');
+        Schema::table('installment_requests', function (Blueprint $table) {
+            $table->string('last_month_reduced')->nullable()->change();
         });
     }
+
 };

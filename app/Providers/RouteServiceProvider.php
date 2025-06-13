@@ -7,23 +7,13 @@ use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvi
 
 class RouteServiceProvider extends ServiceProvider
 {
-    /**
-     * The path to your application's "home" route.
-     *
-     * @var string
-     */
     public const HOME = '/dashboard';
 
-    /**
-     * Define your route model bindings, pattern filters, and other route configuration.
-     */
     public function boot(): void
     {
         $this->routes(function () {
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
-
-            Route::aliasMiddleware('check_admin', CheckAdminMiddleware::class);
+            Route::middleware('web')->group(base_path('routes/web.php'));
+            // ❌ ไม่ควรมีการเรียก Middleware ซ้ำที่นี่
         });
     }
 }

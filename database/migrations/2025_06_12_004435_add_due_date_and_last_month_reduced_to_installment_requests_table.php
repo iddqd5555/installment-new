@@ -6,17 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->decimal('amount_paid', 10, 2)->nullable()->after('fine');
+        Schema::table('installment_requests', function (Blueprint $table) {
+            //
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::table('installment_payments', function (Blueprint $table) {
-            $table->dropColumn('amount_paid');
+        Schema::table('installment_requests', function (Blueprint $table) {
+            //
         });
     }
 };

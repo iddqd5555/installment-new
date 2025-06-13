@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
+use App\Notifications\InstallmentDueReminderNotification;
 
 
 class InstallmentRequestController extends Controller
@@ -125,85 +128,141 @@ class InstallmentRequestController extends Controller
 
     public function dashboard()
     {
-        $requests = auth()->user()->installmentRequests()->latest()->get();
-        $payments = auth()->user()->payments()->latest()->get();
-        $goldPrice = $this->fetchGoldPrice();
         $user = auth()->user();
 
-        // ดึงราคาทองปัจจุบัน (ของเดิมดีแล้ว)
+        // ดึงราคาทองจาก API ที่คุณให้ไว้ (ห้ามเปลี่ยน)
         try {
             $response = Http::get('https://www.goldtraders.or.th/');
             if ($response->successful()) {
                 $crawler = new Crawler($response->body());
                 $goldPrice = (float) str_replace(',', '', trim($crawler->filter('#DetailPlace_uc_goldprices1_lblOMBuy')->text()));
+            } else {
+                $goldPrice = null;
             }
         } catch (\Exception $e) {
             $goldPrice = null;
         }
 
-        $notifications = $user->unreadNotifications()->latest()->limit(3)->get();
-
-        $requests = InstallmentRequest::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->with('payments') // ✅ เพิ่มตรงนี้ให้ชัดเจน
+        $installmentRequests = InstallmentRequest::with('installmentPayments')
+            ->where('user_id', $user->id)
+            ->latest()
             ->get();
 
-        // โค้ดที่มีอยู่เดิม ถูกต้องแล้วค่ะ
-        foreach ($requests as $request) {
-            $goldPriceApproved = $request->approved_gold_price;
+        foreach ($installmentRequests as $request) {
+            if ($request->approved_gold_price) {
+                $request->total_gold_price = $request->approved_gold_price * $request->gold_amount;
+                $request->interest_amount = ($request->interest_rate / 100) * $request->total_gold_price;
+                $request->total_with_interest = $request->total_gold_price + $request->interest_amount;
 
-            // ราคาทองและดอกเบี้ย
-            $request->total_gold_price = $goldPriceApproved * $request->gold_amount;
-            $request->interest_amount = ($request->interest_rate / 100) * $request->total_gold_price;
-            $request->total_with_interest = $request->total_gold_price + $request->interest_amount;
+                $request->total_paid = collect($request->installmentPayments)
+                    ->where('status', 'approved')
+                    ->sum('amount_paid');
 
-            // ชำระและค่าปรับ
-            $totalPaid = InstallmentPayment::where('installment_request_id', $request->id)->sum('amount');
-            $totalFine = InstallmentPayment::where('installment_request_id', $request->id)->sum('fine');
+                $currentMonthPayments = collect($request->installmentPayments)
+                    ->filter(function ($payment) {
+                        $paymentDate = Carbon::parse($payment->updated_at);
+                        return $payment->status === 'approved' &&
+                            $paymentDate->month === Carbon::now()->month &&
+                            $paymentDate->year === Carbon::now()->year;
+                    })
+                    ->sum('amount_paid');
 
-            $request->total_paid = $totalPaid;
-            $request->total_fine = $totalFine;
+                $monthlyPayment = $request->total_with_interest / $request->installment_period;
+                $request->current_month_due = $monthlyPayment - $currentMonthPayments;
 
-            // ยอดคงเหลือทั้งหมด
-            $request->remaining_amount = ($request->total_with_interest + $totalFine) - $totalPaid;
+                $request->remaining_amount = $request->total_with_interest - $request->total_paid;
 
-            // เดือนที่ชำระไปแล้ว
-            $paidMonths = InstallmentPayment::where('installment_request_id', $request->id)->count();
-            $request->remaining_months = $request->installment_period - $paidMonths;
+                // คำนวณ remaining_months ตามวันที่จริง
+                if ($request->start_date) {
+                    $startDate = Carbon::parse($request->start_date);
+                    $endDate = $startDate->copy()->addMonths($request->installment_period);
 
-            // ยอดที่ต้องชำระครั้งถัดไป
-            $request->next_payment_amount = $request->remaining_months > 0
-                ? round($request->remaining_amount / $request->remaining_months, 2)
-                : $request->remaining_amount;
+                    $remainingMonths = Carbon::now()->diffInMonths($endDate, false);
+                    $request->remaining_months = max($remainingMonths, 0);
+                } else {
+                    $request->remaining_months = $request->installment_period;
+                }
 
-            // วันชำระครั้งถัดไป (ตามกำหนดงวดถัดไป)
-            $nextPayment = InstallmentPayment::where('installment_request_id', $request->id)
-                ->whereNull('payment_date')
-                ->orderBy('due_date', 'asc')
-                ->first();
+                $nextPayment = collect($request->installmentPayments)
+                    ->where('status', 'pending')
+                    ->sortBy('payment_due_date')
+                    ->first();
 
-            $request->next_payment_date = $nextPayment ? $nextPayment->due_date : null;
+                $request->next_payment_date = optional($nextPayment)->payment_due_date;
 
-            // ความคืบหน้า %
-            $request->payment_progress = $request->total_with_interest > 0
-                ? ($totalPaid / $request->total_with_interest) * 100
-                : 0;
-           }
+                $request->next_payment_amount = ($request->remaining_months > 0)
+                    ? $request->remaining_amount / $request->remaining_months
+                    : 0;
+            } else {
+                $request->total_gold_price = 0;
+                $request->interest_amount = 0;
+                $request->total_with_interest = 0;
+                $request->total_paid = 0;
+                $request->remaining_amount = 0;
 
-        return view('dashboard', compact('requests', 'payments', 'goldPrice', 'notifications'));
-    }
-    protected function fetchGoldPrice()
-    {
-        try {
-            $response = Http::get('https://www.goldtraders.or.th/');
-            if ($response->successful()) {
-                $crawler = new Crawler($response->body());
-                return (float) str_replace(',', '', trim($crawler->filter('#DetailPlace_uc_goldprices1_lblOMBuy')->text()));
+                if ($request->start_date) {
+                    $startDate = Carbon::parse($request->start_date);
+                    $endDate = $startDate->copy()->addMonths($request->installment_period);
+
+                    $remainingMonths = Carbon::now()->diffInMonths($endDate, false);
+                    $request->remaining_months = max($remainingMonths, 0);
+                } else {
+                    $request->remaining_months = $request->installment_period;
+                }
+
+                $request->next_payment_amount = 0;
+                $request->next_payment_date = null;
+                $request->current_month_due = 0;
             }
-        } catch (\Exception $e) {
-            \Log::error("Error fetching gold price: " . $e->getMessage());
         }
-        return null;
+
+        $payments = InstallmentPayment::whereHas('installmentRequest', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // อย่าลืมส่งตัวแปร $goldPrice ไปด้วย (ที่คุณลืมล่าสุด)
+        return view('dashboard', compact('installmentRequests', 'payments', 'goldPrice'));
+    }
+
+    public function uploadPaymentProof(Request $request, $id)
+    {
+        // Validate Input
+        $request->validate([
+            'amount_paid' => 'required|numeric|min:0|max:999999999.99',
+            'payment_proof' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $paymentProof = $request->file('payment_proof');
+        $filePath = $paymentProof->storeAs('payment_slips', Carbon::now()->format('YmdHis') . '_' . uniqid() . '.' . $paymentProof->extension(), 'public');
+
+        InstallmentPayment::create([
+            'installment_request_id' => $id,
+            'amount' => InstallmentRequest::findOrFail($id)->total_with_interest,
+            'amount_paid' => $request->input('amount_paid'),
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'payment_proof' => $filePath,
+        ]);
+
+        return redirect()->back()->with('success', 'อัปโหลดสลิปเรียบร้อยแล้ว รอการตรวจสอบจากแอดมิน');
+    }
+
+    // Function ดึงราคาทอง (ตัวอย่างที่รัดกุม)
+    private function fetchGoldPrice()
+    {
+        return Cache::remember('latest_gold_price', now()->addMinutes(30), function () {
+            try {
+                $response = Http::timeout(5)->get('https://www.goldtraders.or.th/');
+                if ($response->successful()) {
+                    return $response->json()['response']['price']['gold_jewelry']['sell'];
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error fetching gold price: '.$e->getMessage());
+            }
+            return null;
+        });
     }
 
     public function orderHistory()
@@ -245,5 +304,42 @@ class InstallmentRequestController extends Controller
         }
 
         return view('gold_guest', compact('goldPrices'));
+    }
+
+    public function verify($id)
+    {
+        $installmentRequest = InstallmentRequest::findOrFail($id);
+
+        // ดึงราคาทอง ณ วันอนุมัติ
+        $goldPrice = $this->fetchGoldPrice();
+
+        if ($goldPrice) {
+            // คำนวณ
+            $totalGoldPrice = $goldPrice * $installmentRequest->gold_amount;
+            $interestAmount = ($installmentRequest->interest_rate / 100) * $totalGoldPrice;
+            $totalWithInterest = $totalGoldPrice + $interestAmount;
+
+            // อัปเดตข้อมูลในฐานข้อมูล
+            $installmentRequest->update([
+                'status' => 'approved',
+                'approved_gold_price' => $goldPrice,
+                'total_with_interest' => $totalWithInterest,
+                'next_payment_date' => now()->addMonth()
+            ]);
+
+            // สร้างรายการชำระเงินแต่ละงวด
+            for ($month = 1; $month <= $installmentRequest->installment_period; $month++) {
+                InstallmentPayment::create([
+                    'installment_request_id' => $installmentRequest->id,
+                    'amount' => round($totalWithInterest / $installmentRequest->installment_period, 2),
+                    'payment_due_date' => now()->addMonths($month),
+                    'status' => 'pending',
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'อนุมัติและคำนวณยอดสำเร็จแล้ว');
+        } else {
+            return redirect()->back()->with('error', 'ไม่สามารถดึงราคาทองได้ กรุณาลองใหม่อีกครั้ง');
+        }
     }
 }

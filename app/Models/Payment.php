@@ -17,4 +17,11 @@ class Payment extends Model
     {
         return $this->belongsTo(InstallmentRequest::class);
     }
+
+    public function scopeCurrentMonth($query)
+    {
+        return $query->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year);
+    }
+
 }

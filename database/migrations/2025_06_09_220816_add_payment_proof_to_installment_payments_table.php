@@ -12,16 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('installment_payments', function (Blueprint $table) {
-            $table->string('payment_proof')->nullable()->after('fine');
+            if (!Schema::hasColumn('installment_payments', 'payment_proof')) {
+                $table->string('payment_proof')->nullable()->after('status');
+            }
         });
     }
-    /**
-     * Reverse the migrations.
-     */
+
     public function down(): void
     {
         Schema::table('installment_payments', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('installment_payments', 'payment_proof')) {
+                $table->dropColumn('payment_proof');
+            }
         });
     }
 };

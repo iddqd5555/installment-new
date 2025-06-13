@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use App\Providers\RouteServiceProvider; // 👈 เพิ่มตรงนี้
+use App\Models\User;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -16,21 +17,29 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
-        $request->validate([
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ]);
+        $request->validate(['phone' => ['required', 'string']]);
 
-        if (Auth::attempt(['phone' => $request->phone, 'password' => $request->password], $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            return redirect()->intended(RouteServiceProvider::HOME);
+        // เช็คว่าเบอร์โทรนี้มีอยู่ในระบบหรือไม่
+        $user = User::where('phone', $request->phone)->first();
+
+        if (!$user) {
+            return back()->withErrors(['phone' => 'ไม่พบเบอร์โทรนี้ในระบบ'])->onlyInput('phone');
         }
 
-        return back()->withErrors([
-            'phone' => 'เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง',
-        ])->onlyInput('phone');
+        // ถ้ามีเบอร์โทรแล้ว แต่ยังไม่ได้กรอกรหัสผ่าน
+        if (!$request->filled('password')) {
+            return back()->withInput(['phone' => $request->phone])->with('show_password', true);
+        }
+
+        // ถ้ามีการกรอกรหัสผ่านแล้ว
+        if (Auth::attempt(['phone' => $request->phone, 'password' => $request->password])) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('dashboard'));
+        }
+
+        return back()->withErrors(['password' => 'รหัสผ่านไม่ถูกต้อง'])->withInput(['phone' => $request->phone])->with('show_password', true);
     }
 
     public function destroy(Request $request): RedirectResponse

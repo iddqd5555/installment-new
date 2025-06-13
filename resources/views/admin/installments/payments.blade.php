@@ -11,14 +11,15 @@
                 <img src="{{ asset('storage/payment_proofs/'.$payment->payment_proof) }}" width="200px">
 
                 <form action="{{ route('admin.payments.approve', $payment->id) }}" method="POST">
-                    @csrf @method('PATCH')
-                    <button class="btn btn-success">✅ อนุมัติ</button>
+                    @csrf
+                    @method('PATCH') <!-- ✅ ต้องมีชัดเจน -->
+                    <button class="btn btn-success btn-sm">อนุมัติ</button>
                 </form>
 
                 <form action="{{ route('admin.payments.reject', $payment->id) }}" method="POST">
-                    @csrf @method('PATCH')
-                    <textarea name="admin_notes" class="form-control" placeholder="เหตุผลการปฏิเสธ"></textarea>
-                    <button class="btn btn-danger">❌ ปฏิเสธ</button>
+                    @csrf
+                    @method('PATCH') <!-- ✅ ต้องมีชัดเจน -->
+                    <button class="btn btn-danger btn-sm">ปฏิเสธ</button>
                 </form>
             </div>
         </div>

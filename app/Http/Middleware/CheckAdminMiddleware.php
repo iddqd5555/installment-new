@@ -10,17 +10,11 @@ class CheckAdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // ตรวจสอบการล็อคอินก่อน
-        if (!auth()->check()) {
-            return redirect('/login');
+        if (auth()->check() && auth()->user()->is_admin == 1) {
+            return $next($request);
         }
 
-        // ตรวจสอบสถานะแอดมินชัดเจน
-        if (auth()->user()->is_admin != 1) {
-            abort(403, 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
-        }
-
-        // ให้ดำเนินการต่อถ้าเป็นแอดมิน
-        return $next($request);
+        abort(403, 'This action is unauthorized.');
     }
 }
+

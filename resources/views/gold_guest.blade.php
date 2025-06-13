@@ -45,18 +45,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const goldPrice = parseFloat('{{ str_replace(",", "", $goldPrices["ornament_sell"]) }}');
+    @if($goldPrices && isset($goldPrices["ornament_sell"]))
+        const goldPrice = parseFloat('{{ str_replace(",", "", $goldPrices["ornament_sell"]) }}');
+    @else
+        const goldPrice = 0;
+    @endif
+
     const bahtInput = document.getElementById('baht_input');
     const goldInput = document.getElementById('gold_input');
 
     bahtInput.addEventListener('input', function() {
         const baht = parseFloat(this.value) || 0;
-        goldInput.value = (baht / goldPrice).toFixed(2);
+        if (goldPrice > 0) {
+            goldInput.value = (baht / goldPrice).toFixed(2);
+        } else {
+            goldInput.value = '0.00';
+        }
     });
 
     goldInput.addEventListener('input', function() {
         const goldWeight = parseFloat(this.value) || 0;
-        bahtInput.value = (goldWeight * goldPrice).toFixed(2);
+        if (goldPrice > 0) {
+            bahtInput.value = (goldWeight * goldPrice).toFixed(2);
+        } else {
+            bahtInput.value = '0.00';
+        }
     });
 });
 </script>

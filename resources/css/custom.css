@@ -1,7 +1,30 @@
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: 'Prompt', sans-serif;
     background-color: #f4f8fb;
     color: #343a40;
+}
+
+/* ลบ flexbox ออกเพื่อคืน layout เดิม */
+#content-wrapper {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+footer {
+    background-color: #f8f9fa;
+    padding: 1rem;
+}
+
+.footer-text small {
+    white-space: nowrap;
+    font-size: 11px; /* ลดขนาดตัวอักษรให้เล็กลงได้อีกตามต้องการ */
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis; /* กรณีที่ต้องการให้ตัดข้อความยาวแล้วใส่ ... */
 }
 
 .bg-kplus-green {
