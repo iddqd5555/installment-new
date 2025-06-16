@@ -4,17 +4,21 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Auth;
 
 class CheckAdminMiddleware
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        if (auth()->check() && auth()->user()->is_admin == 1) {
+        // ถ้าเป็น Admin (แยก guard admin ชัดเจน)
+        if (Auth::guard('admin')->check()) {
+            if ($request->routeIs('admin.login') || $request->routeIs('admin.login.submit')) {
+                return redirect()->route('admin.dashboard');
+            }
             return $next($request);
         }
 
-        abort(403, 'This action is unauthorized.');
+        // ถ้าไม่ใช่ Admin ต้องไปหน้า login admin
+        return redirect()->route('admin.login');
     }
 }
-

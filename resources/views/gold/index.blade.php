@@ -3,38 +3,38 @@
 @section('content')
 <div class="container py-5">
     @if(Auth::check())
-        <!-- ส่วนนี้แสดงสำหรับผู้ที่ล็อกอินแล้ว -->
         <h2 class="mb-4 text-success">📱 ฟอร์มคำขอผ่อนทอง</h2>
 
         <div class="card shadow-sm p-4">
             <form method="POST" action="{{ route('gold.request.store') }}">
                 @csrf
 
-                <!-- ชื่อ-นามสกุล -->
                 <div class="form-group">
                     <label>ชื่อ-นามสกุล</label>
-                    <input type="text" name="fullname" value="{{ auth()->user()->name }}" readonly>
+                    <input type="text" name="fullname" class="form-control" value="{{ auth()->user()->name }}" readonly>
                 </div>
 
-                <!-- เบอร์โทร -->
                 <div class="form-group">
                     <label>เบอร์โทรศัพท์</label>
-                    <input type="text" name="phone" value="{{ auth()->user()->phone }}" readonly>
+                    <input type="text" name="phone" class="form-control" value="{{ auth()->user()->phone }}" readonly>
                 </div>
 
-                <!-- จำนวนบาททอง -->
                 <div class="form-group">
-                    <label>จำนวนทอง (บาท)</label>
-                    <input type="number" class="form-control" name="gold_amount" required>
+                    <label>น้ำหนักทอง (บาท)</label>
+                    <input type="number" step="0.01" class="form-control" name="gold_amount" required>
                 </div>
 
-                <!-- จำนวนเดือนผ่อน -->
                 <div class="form-group">
-                    <label>จำนวนเดือนที่ต้องการผ่อน</label>
+                    <label>ราคาทองวันนี้ (บาท)</label>
+                    <input type="number" step="0.01" class="form-control" name="gold_price" value="{{ $goldPrice->sell }}" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>ระยะเวลาผ่อน</label>
                     <select name="installment_period" class="form-control" required>
-                        <option value="3">3 เดือน</option>
-                        <option value="6">6 เดือน</option>
-                        <option value="12">12 เดือน</option>
+                        <option value="30">30 วัน</option>
+                        <option value="45">45 วัน</option>
+                        <option value="60">60 วัน</option>
                     </select>
                 </div>
 
@@ -43,21 +43,26 @@
         </div>
 
     @else
-        <!-- ส่วนนี้แสดงสำหรับผู้ที่ยังไม่ได้ล็อกอิน -->
-        <h2 class="text-success">ราคาทองคำล่าสุด</h2>
-
-        @if($goldPrice)
-            <p>🔸 <strong>ทองประเภท:</strong> {{ $goldPrice['type'] }}</p>
-            <p>💰 <strong>ราคาซื้อ:</strong> {{ number_format($goldPrice['buy'], 2) }} บาท</p>
-            <p>💰 <strong>ราคาขาย:</strong> {{ number_format($goldPrice['sell'], 2) }} บาท</p>
-        @else
-            <p class="text-danger">⚠️ ไม่สามารถโหลดราคาทองคำได้</p>
-        @endif
+        <h4 class="text-center bg-warning py-2 rounded">ราคาทองรูปพรรณวันนี้ (96.5%)</h4>
+        <table class="table table-bordered text-center">
+            <thead class="bg-warning">
+                <tr>
+                    <th>รับซื้อ</th>
+                    <th>ขายออก</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ number_format($goldPrice->buy, 2) }}</td>
+                    <td>{{ number_format($goldPrice->sell, 2) }}</td>
+                </tr>
+            </tbody>
+        </table>
 
         <hr>
         <p class="mt-4">
             กรุณาเข้าสู่ระบบเพื่อขอผ่อนทองรูปพรรณกับเรา<br>
-            หรือติดต่อแอดมินเพื่อทำการสมัครสมาชิกก่อนใช้งานระบบ
+            หรือติดต่อแอดมินเพื่อสมัครสมาชิกก่อนใช้งานระบบ
         </p>
 
         <a href="{{ route('login') }}" class="btn btn-primary">🔑 เข้าสู่ระบบ</a>

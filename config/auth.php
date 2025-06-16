@@ -36,9 +36,16 @@ return [
     */
 
     'guards' => [
+        // เดิมของ user
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        // Admin guard ใหม่
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'admins',
         ],
     ],
 
@@ -60,15 +67,17 @@ return [
     */
 
     'providers' => [
+        // เดิมของ user
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\User::class,
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // Admin provider ใหม่
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
     ],
 
     /*

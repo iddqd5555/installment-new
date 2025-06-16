@@ -16,19 +16,6 @@
         </div>
     <?php endif; ?>
     <h2 class="text-success">Dashboard การผ่อนของคุณ</h2>
-    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('check_admin')): ?>
-        <a href="<?php echo e(route('admin.payment-settings')); ?>" class="btn btn-info my-3">⚙️ จัดการบัญชีชำระเงิน</a>
-    <?php endif; ?>
-    <a href="<?php echo e(route('payment-info')); ?>" class="btn btn-primary my-3">📋 ดูข้อมูลชำระเงิน</a>
-    <?php if($goldPrice): ?>
-        <div class="alert alert-info">
-            💎 ราคาทองคำปัจจุบัน: <?php echo e(number_format($goldPrice, 2)); ?> บาท
-        </div>
-    <?php else: ?>
-        <div class="alert alert-warning">
-            ⚠️ ไม่สามารถดึงราคาทองคำล่าสุดได้ กรุณารีเฟรชอีกครั้งค่ะ
-        </div>
-    <?php endif; ?>
 
     <?php if(auth()->user()->unreadNotifications->count()): ?>
         <div class="alert alert-info">
@@ -116,10 +103,24 @@
                 </p>
 
                 
-                <button class="btn btn-success" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#payInfo<?php echo e($request->id); ?>" aria-expanded="false">
-                    ชำระเงิน
-                </button>
+                <div class="card shadow-sm mt-4">
+                    <div class="card-body">
+                        <h5>📌 ช่องทางการชำระเงิน</h5>
+                        <?php $__empty_2 = true; $__currentLoopData = $bankAccounts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $bank): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
+                            <div class="bank-info my-2 d-flex align-items-center">
+                                <img src="<?php echo e(asset('storage/'.$bank->logo)); ?>" width="60" alt="<?php echo e($bank->bank_name); ?>" class="me-3">
+                                <div>
+                                    <strong><?php echo e($bank->bank_name); ?></strong><br>
+                                    ชื่อบัญชี: <?php echo e($bank->account_name); ?><br>
+                                    เลขที่บัญชี: <?php echo e($bank->account_number); ?>
+
+                                </div>
+                            </div>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                            <div class="alert alert-warning">⚠️ ไม่มีข้อมูลบัญชีธนาคาร</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
                 <button class="btn btn-warning" type="button" data-bs-toggle="collapse"
                     data-bs-target="#uploadSlip<?php echo e($request->id); ?>" aria-expanded="false">

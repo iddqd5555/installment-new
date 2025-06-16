@@ -18,8 +18,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// หน้าราคาทอง ไม่ต้องล็อคอิน
-Route::get('/gold', [InstallmentRequestController::class, 'goldapi'])->name('gold.index');
+Route::middleware(['guest'])->group(function() {
+    // หน้าราคาทอง ไม่ต้องล็อคอิน
+    Route::get('/gold', [InstallmentRequestController::class, 'goldapi'])->name('gold.index');
+    Route::post('/gold/submit-guest', [InstallmentRequestController::class, 'submitGoldGuest'])->name('gold.submit_guest');
+});
 
 // หน้า Phone (ล็อคอินและไม่ล็อคอิน)
 Route::get('/phone', function () {
@@ -51,54 +54,45 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name
 
 // กลุ่ม routes สมาชิกทั่วไป (ผ่อนทอง)
 Route::middleware(['auth'])->group(function () {
-    Route::post('/gold/request', [InstallmentRequestController::class, 'store'])->name('gold.request.store');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/gold/member', [InstallmentRequestController::class, 'showGoldForm'])->name('gold.member');
+    Route::post('/gold/member/store', [InstallmentRequestController::class, 'submitGoldMember'])->name('gold.request.store');
     Route::get('/installments/request/create/{id}', [InstallmentRequestController::class, 'create'])
         ->name('installments.request.create');
     Route::get('/orders/history', [InstallmentRequestController::class, 'orderHistory'])
         ->name('orders.history');
     Route::post('payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
+    Route::get('/payment-info', [BankAccountController::class, 'index'])->name('payment-info');
 });
 
 // กลุ่ม routes สำหรับ Admin เท่านั้น (จัดการระบบทั้งหมด)
-Route::middleware(['auth', 'check_admin'])->prefix('admin')->name('admin.')->group(function () {
+/*Route::middleware(['web', 'auth', 'check_admin'])
+    ->prefix('manage')
+    ->name('manage.')
+    ->group(function () {
+        Route::get('/installments', [InstallmentAdminController::class, 'index'])->name('installments.index');
+        Route::patch('/requests/verify/{id}', [InstallmentAdminController::class, 'verify'])->name('requests.verify');
+        Route::get('/installments/create', [InstallmentAdminController::class, 'create'])->name('installments.create');
+        Route::post('/installments', [InstallmentAdminController::class, 'store'])->name('installments.store');
+        Route::get('/installments/{id}/edit', [InstallmentAdminController::class, 'edit'])->name('installments.edit');
+        Route::patch('/installments/{id}', [InstallmentAdminController::class, 'update'])->name('installments.update');
+        Route::delete('/installments/{id}', [InstallmentAdminController::class, 'destroy'])->name('installments.destroy');
+        Route::patch('/installments/{id}/update-status', [InstallmentAdminController::class, 'updateStatus'])->name('installments.updateStatus');
+        
+        Route::post('/installments/{id}/update-guest-status', [InstallmentAdminController::class, 'updateGuestStatus'])->name('installments.updateGuestStatus');
 
-    // Installment Management
-    Route::get('/installments', [InstallmentAdminController::class, 'index'])->name('installments.index');
-    Route::patch('/requests/verify/{id}', [InstallmentAdminController::class, 'verify'])->name('requests.verify');
-    Route::get('/installments/create', [InstallmentAdminController::class, 'create'])->name('installments.create');
-    Route::post('/installments', [InstallmentAdminController::class, 'store'])->name('installments.store');
-    Route::get('/installments/{id}/edit', [InstallmentAdminController::class, 'edit'])->name('installments.edit');
-    Route::patch('/installments/{id}', [InstallmentAdminController::class, 'update'])->name('installments.update');
-    Route::delete('/installments/{id}', [InstallmentAdminController::class, 'destroy'])->name('installments.destroy');
-    Route::patch('/installments/{id}/update-status', [InstallmentAdminController::class, 'updateStatus'])->name('installments.updateStatus');
+        Route::get('/payments', [InstallmentAdminController::class, 'payments'])->name('payments.index');
+        Route::patch('/payments/{paymentId}/approve', [InstallmentAdminController::class, 'approvePayment'])->name('payments.approve');
+        Route::patch('/payments/{paymentId}/reject', [InstallmentAdminController::class, 'rejectPayment'])->name('payments.reject');
 
-    // Payment Management
-    Route::get('/payments', [InstallmentAdminController::class, 'payments'])->name('payments.index');
-    Route::patch('/payments/{paymentId}/approve', [InstallmentAdminController::class, 'approvePayment'])->name('payments.approve');
-    Route::patch('/payments/{paymentId}/reject', [InstallmentAdminController::class, 'rejectPayment'])->name('payments.reject');
+        Route::get('/payment-settings', function () {
+            return view('admin.payment-settings');
+        })->name('payment-settings');
 
-    // Payment Settings Management
-    Route::get('/payment-settings', function () {
-        return view('admin.payment-settings');
-    })->name('payment-settings');
-
-    Route::post('/payment-info/store', [PaymentInfoController::class, 'store'])->name('payment-info.store');
-});
-
-// 🚩 Route ใหม่สำหรับระบบจัดการบัญชีชำระเงิน
-Route::middleware(['auth', 'check_admin'])->group(function () {
-    
-    Route::get('/admin/payment-settings', function () {
-        return view('admin.payment-settings');
-    })->name('admin.payment-settings');
-
-    Route::post('/admin/payment-info/store', [PaymentInfoController::class, 'store'])
-        ->name('admin.payment-info.store');
-});
-
-// 🚩 Route ใหม่สำหรับแสดงข้อมูลชำระเงิน (ผู้ใช้งานทั่วไป)
-Route::get('/payment-info', [PaymentInfoController::class, 'showPaymentInfo'])
-    ->name('payment-info');
+        Route::post('/payment-info/store', [PaymentInfoController::class, 'store'])->name('payment-info.store');
+    });*/
 
 // Authentication Routes
 require __DIR__.'/auth.php';

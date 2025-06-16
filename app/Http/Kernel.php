@@ -43,6 +43,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
         // ✅ เพิ่ม Middleware check_admin ตรงนี้ชัดเจนที่สุด
-        'check_admin' => \App\Http\Middleware\CheckAdminMiddleware::class,
+        'admin' => \App\Http\Middleware\CheckAdminMiddleware::class,
     ];
 }

@@ -50,13 +50,11 @@ class InstallmentController extends Controller
         return view('user.installments.show', compact('request'));
     }
 
-    public function edit($id)
-    {
+    public function edit($id) {
         $installment = InstallmentRequest::findOrFail($id);
-
-        return view('user.installments.edit', compact('installment'));
+        $goldPrices = Cache::get('gold_prices_daily');
+        return view('admin.installments.edit', compact('installment', 'goldPrices'));
     }
-
 
     public function update(Request $request, $id)
     {

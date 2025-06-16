@@ -4,6 +4,10 @@
 <div class="container py-5">
     <h3 class="text-center">✏️ แก้ไขคำขอผ่อนทอง (Admin)</h3>
 
+    <div class="alert alert-info">
+        💎 ราคาทองวันนี้จาก API คือ: <strong>{{ number_format($goldPrices['ornament_sell'] ?? 'ไม่สามารถดึงราคาได้', 2) }}</strong> บาท
+    </div>
+
     <form action="{{ route('admin.installments.update', $installment->id) }}" method="POST">
         @csrf
         @method('PATCH')
@@ -15,15 +19,16 @@
 
         <div class="mb-3">
             <label for="approved_gold_price">ราคาทองที่อนุมัติ (บาท)</label>
-            <input type="number" step="0.01" name="approved_gold_price" class="form-control" value="{{ $installment->approved_gold_price }}" required>
+            <input type="number" step="0.01" name="approved_gold_price" class="form-control" 
+            value="{{ $goldPrices['ornament_sell'] ?? $installment->approved_gold_price }}" required>
         </div>
 
         <div class="mb-3">
-            <label for="installment_period">ระยะเวลาผ่อน (เดือน)</label>
+            <label for="installment_period">ระยะเวลาผ่อน (วัน)</label>
             <select name="installment_period" class="form-select">
-                <option value="6" {{ $installment->installment_period == 6 ? 'selected' : '' }}>6 เดือน</option>
-                <option value="12" {{ $installment->installment_period == 12 ? 'selected' : '' }}>12 เดือน</option>
-                <option value="18" {{ $installment->installment_period == 18 ? 'selected' : '' }}>18 เดือน</option>
+                <option value="30" {{ $installment->installment_period == 30 ? 'selected' : '' }}>30 วัน</option>
+                <option value="45" {{ $installment->installment_period == 45 ? 'selected' : '' }}>45 วัน</option>
+                <option value="60" {{ $installment->installment_period == 60 ? 'selected' : '' }}>60 วัน</option>
             </select>
         </div>
 

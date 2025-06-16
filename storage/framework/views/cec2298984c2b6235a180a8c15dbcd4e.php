@@ -2,6 +2,10 @@
 <html lang="<?php echo e(str_replace('_', '-', app()->getLocale())); ?>">
 <head>
     <meta charset="utf-8">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+    <?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::styles(); ?>
+
+    <?php echo \Filament\Support\Facades\FilamentAsset::renderStyles() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo e(config('app.name', 'Wisdom Gold วิสด้อม โกลด์')); ?></title>
     <meta name="description" content="ผ่อนทอง ผ่อนมือถือ ง่ายๆ ไม่ต้องใช้บัตรเครดิต กับ Wisdom Gold วิสด้อม โกลด์">
@@ -27,6 +31,7 @@
     <!-- ไอคอนเว็บไซต์ -->
     <link rel="icon" href="<?php echo e(asset('favicon.ico')); ?>">
     
+    
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
 
 </head>
@@ -38,7 +43,7 @@
     </div>
 </div>
 <nav class="bg-kplus-green py-3 nav-shadow position-relative">
-    <div class="container d-flex flex-wrap align-items-center justify-content-between position-relative">
+    <div class="container d-flex align-items-center justify-content-between position-relative">
         <div class="d-flex align-items-center gap-2">
             <button id="mobile-menu-btn" class="d-md-none">☰</button>
             <a href="/" class="text-lg font-bold text-white">
@@ -49,13 +54,18 @@
 
         <div id="desktop-menu" class="d-none d-md-flex gap-3 align-items-center">
             <a href="/" class="menu-link">หน้าแรก</a>
-            <a href="/gold" class="menu-link">ผ่อนทอง</a>
+            <a href="<?php echo e(auth()->check() ? route('gold.member') : route('gold.index')); ?>" class="menu-link">ผ่อนทอง</a>
             <a href="/phone" class="menu-link">ผ่อนมือถือ</a>
             <a href="/contact" class="menu-link">ติดต่อเรา</a>
+
             <?php if(auth()->guard()->check()): ?>
-                <form action="<?php echo e(route('logout')); ?>" method="POST" class="d-inline">
+                <a href="<?php echo e(route('profile.edit')); ?>" class="menu-link btn-rounded bg-white text-dark shadow-sm">
+                    แก้ไขข้อมูลส่วนตัว
+                </a>
+
+                <form action="<?php echo e(route('logout')); ?>" method="POST" class="ms-2">
                     <?php echo csrf_field(); ?>
-                    <button class="btn-rounded">ออกจากระบบ</button>
+                    <button class="btn-rounded btn-logout">ออกจากระบบ</button>
                 </form>
             <?php else: ?>
                 <a href="<?php echo e(route('login')); ?>" class="btn-rounded">เข้าสู่ระบบ</a>
@@ -63,7 +73,7 @@
         </div>
 
         <?php if(auth()->guard()->check()): ?>
-        <div class="credit-status position-static position-md-absolute">
+        <div class="position-absolute top-0 end-0 p-2 credit-status-desktop">
             <?php
                 $creditStatus = auth()->user()->credit_status ?? 'เครดิตดีมาก';
                 $statusColors = [
@@ -74,32 +84,57 @@
                     'เครดิตแย่มาก' => 'linear-gradient(to right, #93291E, #ED213A)',
                 ];
                 $currentColor = $statusColors[$creditStatus] ?? $statusColors['เครดิตปานกลาง'];
+
+                $identityStatus = auth()->user()->identity_verification_status;
+                $identityBadge = $identityStatus === 'verified'
+                    ? ['color' => '#28aaff', 'text' => 'ยืนยันตัวตนแล้ว']
+                    : ['color' => '#ff3c41', 'text' => 'ยังไม่ยืนยันตัวตน'];
             ?>
 
-            <span class="badge px-2 py-1" style="background: <?php echo e($currentColor); ?>;">
-                เครดิต: <?php echo e($creditStatus); ?>
+            <div class="d-flex gap-2 flex-column align-items-end">
+                <span class="badge px-2 py-1" style="background: <?php echo e($currentColor); ?>;">
+                    เครดิต: <?php echo e($creditStatus); ?>
 
-            </span>
+                </span>
+                <span class="badge px-2 py-1" style="background-color: <?php echo e($identityBadge['color']); ?>;">
+                    <?php echo e($identityBadge['text']); ?>
+
+                </span>
+            </div>
         </div>
         <?php endif; ?>
     </div>
 
+    <!-- Mobile Menu -->
     <div id="mobile-menu" class="d-md-none px-4">
         <a href="/" class="menu-link">หน้าแรก</a>
-        <a href="/gold" class="menu-link">ผ่อนทอง</a>
+        <a href="<?php echo e(route('profile.edit')); ?>" class="menu-link">แก้ไขข้อมูลส่วนตัว</a>
+        <a href="<?php echo e(auth()->check() ? route('gold.member') : route('gold.index')); ?>" class="menu-link">ผ่อนทอง</a>
         <a href="/phone" class="menu-link">ผ่อนมือถือ</a>
         <a href="/contact" class="menu-link">ติดต่อเรา</a>
+
         <?php if(auth()->guard()->check()): ?>
-            <span class="menu-link">เครดิต: <?php echo e($creditStatus); ?></span>
+            <div class="d-flex gap-2 flex-column align-items-start my-2">
+                <span class="badge px-2 py-1" style="background: <?php echo e($currentColor); ?>;">
+                    เครดิต: <?php echo e($creditStatus); ?>
+
+                </span>
+                <span class="badge px-2 py-1" style="background-color: <?php echo e($identityBadge['color']); ?>;">
+                    <?php echo e($identityBadge['text']); ?>
+
+                </span>
+            </div>
+
             <form action="<?php echo e(route('logout')); ?>" method="POST">
                 <?php echo csrf_field(); ?>
-                <button class="btn-rounded w-100">ออกจากระบบ</button>
+                <button class="btn-rounded w-100 btn-logout">ออกจากระบบ</button>
             </form>
         <?php else: ?>
             <a href="<?php echo e(route('login')); ?>" class="btn-rounded w-100">เข้าสู่ระบบ</a>
         <?php endif; ?>
     </div>
 </nav>
+
 
 <div class="container py-4 <?php echo e(request()->is('login') ? 'd-flex align-items-center justify-content-center flex-grow-1' : ''); ?>" 
      id="content-wrapper"
@@ -152,6 +187,10 @@ window.addEventListener('resize', () => {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <?php echo $__env->yieldContent('scripts'); ?>
+
+<?php echo \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts(); ?>
+
+<?php echo \Filament\Support\Facades\FilamentAsset::renderScripts() ?>
 </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\installment-new\resources\views/layouts/app.blade.php ENDPATH**/ ?>

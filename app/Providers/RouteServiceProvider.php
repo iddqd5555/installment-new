@@ -12,8 +12,12 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->routes(function () {
-            Route::middleware('web')->group(base_path('routes/web.php'));
-            // ❌ ไม่ควรมีการเรียก Middleware ซ้ำที่นี่
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
+
+            Route::middleware(['web']) // ใช้ web ธรรมดาไม่ต้อง auth ที่นี่
+                ->prefix('manage')
+                ->group(base_path('routes/admin.php'));
         });
     }
 }

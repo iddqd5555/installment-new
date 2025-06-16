@@ -11,7 +11,7 @@
             <p><strong>เบอร์โทรศัพท์:</strong> {{ $request->phone }}</p>
             <p><strong>ประเภททอง:</strong> {{ $request->gold_type }}</p>
             <p><strong>จำนวนบาททอง:</strong> {{ $request->gold_amount }} บาท</p>
-            <p><strong>จำนวนเดือนผ่อน:</strong> {{ $request->installment_period }} เดือน</p>
+            <p><strong>จำนวนเดือนผ่อน:</strong> {{ $request->installment_period }} วัน</td>
             <p><strong>สถานะ:</strong> {{ ucfirst($request->status) }}</p>
 
             <form action="{{ route('admin.requests.verify', $request->id) }}" method="POST">

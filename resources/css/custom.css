@@ -88,9 +88,12 @@ a {
 
 .btn-rounded {
     border-radius: 20px;
-    background-color: #0aad3f;
-    color: white;
-    padding: 8px 16px;
+    padding: 6px 12px;
+    color: #333;
+    border: none;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
     transition: transform 0.2s, background-color 0.3s;
 }
 
@@ -105,12 +108,54 @@ a {
     border: none;
 }
 
-/* สถานะเครดิตสำหรับคอม */
-.credit-status {
-    font-size: 0.9rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
+
+/* ปรับปรุงปุ่มออกจากระบบให้ชัดเจน อ่านง่าย */
+.btn-logout {
+    background-color: #ff3c41 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+/* แก้การจัดวางสถานะเครดิตและยืนยันตัวตนใน desktop */
+
+/* ปรับขนาด badge ให้เหมาะสม */
+.credit-status-desktop .badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+#desktop-menu {
+    padding-right: 200px; /* เว้นระยะห่างให้เพียงพอไม่ทับกัน */
+}
+
+/* แก้ไข responsive ของ desktop-menu ในช่วง tablet */
+@media (max-width: 992px) and (min-width: 769px) {
+    #desktop-menu {
+        gap: 8px !important;
+    }
+
+    .menu-link {
+        padding: 4px 8px !important;
+    }
+
+    .btn-rounded {
+        font-size: 0.8rem !important;
+    }
+
+    .credit-status-desktop {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        z-index: 9999;
+    }
+
+    #desktop-menu {
+        padding-right: 220px !important; /* ให้มีพื้นที่เพียงพอ */
+    }
 }
 
 /* Responsive Navbar adjustments */
@@ -125,14 +170,18 @@ a {
         text-align: left;
         font-size: 1rem;
     }
-
-    .credit-status {
-        margin-top: 0;
-        position: static !important;
+    .credit-status-desktop .badge {
+        font-size: 0.7rem !important;
     }
 
-    #mobile-menu-btn {
-        margin-right: 5px;
+    /* ซ่อน Badge ที่ซ้ำซ้อนในเมนูมือถือ */
+    #mobile-menu .badge {
+        display: none !important;
+    }
+
+    /* ปรับ padding ด้านบนของเมนูมือถือเพื่อเว้นช่องว่างให้ Badge */
+    #mobile-menu {
+        padding-top: 20px !important;
     }
 }
 

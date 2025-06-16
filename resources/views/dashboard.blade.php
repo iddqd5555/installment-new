@@ -16,19 +16,6 @@
         </div>
     @endif
     <h2 class="text-success">Dashboard การผ่อนของคุณ</h2>
-    @can('check_admin')
-        <a href="{{ route('admin.payment-settings') }}" class="btn btn-info my-3">⚙️ จัดการบัญชีชำระเงิน</a>
-    @endcan
-    <a href="{{ route('payment-info') }}" class="btn btn-primary my-3">📋 ดูข้อมูลชำระเงิน</a>
-    @if($goldPrice)
-        <div class="alert alert-info">
-            💎 ราคาทองคำปัจจุบัน: {{ number_format($goldPrice, 2) }} บาท
-        </div>
-    @else
-        <div class="alert alert-warning">
-            ⚠️ ไม่สามารถดึงราคาทองคำล่าสุดได้ กรุณารีเฟรชอีกครั้งค่ะ
-        </div>
-    @endif
 
     @if(auth()->user()->unreadNotifications->count())
         <div class="alert alert-info">
@@ -114,10 +101,23 @@
                 </p>
 
                 {{-- ส่วนชำระเงินและอัปโหลดสลิปของคุณเดิม --}}
-                <button class="btn btn-success" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#payInfo{{ $request->id }}" aria-expanded="false">
-                    ชำระเงิน
-                </button>
+                <div class="card shadow-sm mt-4">
+                    <div class="card-body">
+                        <h5>📌 ช่องทางการชำระเงิน</h5>
+                        @forelse($bankAccounts as $bank)
+                            <div class="bank-info my-2 d-flex align-items-center">
+                                <img src="{{ asset('storage/'.$bank->logo) }}" width="60" alt="{{ $bank->bank_name }}" class="me-3">
+                                <div>
+                                    <strong>{{ $bank->bank_name }}</strong><br>
+                                    ชื่อบัญชี: {{ $bank->account_name }}<br>
+                                    เลขที่บัญชี: {{ $bank->account_number }}
+                                </div>
+                            </div>
+                        @empty
+                            <div class="alert alert-warning">⚠️ ไม่มีข้อมูลบัญชีธนาคาร</div>
+                        @endforelse
+                    </div>
+                </div>
 
                 <button class="btn btn-warning" type="button" data-bs-toggle="collapse"
                     data-bs-target="#uploadSlip{{ $request->id }}" aria-expanded="false">

@@ -12,18 +12,30 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',
-        'surname',
+        'first_name',
+        'last_name',
         'phone',
-        'password',
         'id_card_number',
-        'phone_verified_at',
-        'is_admin',
         'identity_verification_status',
+        'email',
         'address',
-        'workplace',
+        'date_of_birth',
+        'gender',
         'salary',
-        'remember_token',
+        'workplace',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
+        'id_card_image',
+        'slip_salary_image',
+        'additional_documents',
+        'is_admin',
+        'role',
+        'status',
+        'password',
+        'two_factor_enabled',
+        'last_login_at',
+        'last_login_ip',
     ];
 
     protected $hidden = [

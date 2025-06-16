@@ -2,6 +2,9 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @livewireStyles
+    @filamentStyles
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Wisdom Gold วิสด้อม โกลด์') }}</title>
     <meta name="description" content="ผ่อนทอง ผ่อนมือถือ ง่ายๆ ไม่ต้องใช้บัตรเครดิต กับ Wisdom Gold วิสด้อม โกลด์">
@@ -27,6 +30,7 @@
     <!-- ไอคอนเว็บไซต์ -->
     <link rel="icon" href="{{ asset('favicon.ico') }}">
     
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 </head>
@@ -38,7 +42,7 @@
     </div>
 </div>
 <nav class="bg-kplus-green py-3 nav-shadow position-relative">
-    <div class="container d-flex flex-wrap align-items-center justify-content-between position-relative">
+    <div class="container d-flex align-items-center justify-content-between position-relative">
         <div class="d-flex align-items-center gap-2">
             <button id="mobile-menu-btn" class="d-md-none">☰</button>
             <a href="/" class="text-lg font-bold text-white">
@@ -49,13 +53,18 @@
 
         <div id="desktop-menu" class="d-none d-md-flex gap-3 align-items-center">
             <a href="/" class="menu-link">หน้าแรก</a>
-            <a href="/gold" class="menu-link">ผ่อนทอง</a>
+            <a href="{{ auth()->check() ? route('gold.member') : route('gold.index') }}" class="menu-link">ผ่อนทอง</a>
             <a href="/phone" class="menu-link">ผ่อนมือถือ</a>
             <a href="/contact" class="menu-link">ติดต่อเรา</a>
+
             @auth
-                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                <a href="{{ route('profile.edit') }}" class="menu-link btn-rounded bg-white text-dark shadow-sm">
+                    แก้ไขข้อมูลส่วนตัว
+                </a>
+
+                <form action="{{ route('logout') }}" method="POST" class="ms-2">
                     @csrf
-                    <button class="btn-rounded">ออกจากระบบ</button>
+                    <button class="btn-rounded btn-logout">ออกจากระบบ</button>
                 </form>
             @else
                 <a href="{{ route('login') }}" class="btn-rounded">เข้าสู่ระบบ</a>
@@ -63,7 +72,7 @@
         </div>
 
         @auth
-        <div class="credit-status position-static position-md-absolute">
+        <div class="position-absolute top-0 end-0 p-2 credit-status-desktop">
             @php
                 $creditStatus = auth()->user()->credit_status ?? 'เครดิตดีมาก';
                 $statusColors = [
@@ -74,31 +83,53 @@
                     'เครดิตแย่มาก' => 'linear-gradient(to right, #93291E, #ED213A)',
                 ];
                 $currentColor = $statusColors[$creditStatus] ?? $statusColors['เครดิตปานกลาง'];
+
+                $identityStatus = auth()->user()->identity_verification_status;
+                $identityBadge = $identityStatus === 'verified'
+                    ? ['color' => '#28aaff', 'text' => 'ยืนยันตัวตนแล้ว']
+                    : ['color' => '#ff3c41', 'text' => 'ยังไม่ยืนยันตัวตน'];
             @endphp
 
-            <span class="badge px-2 py-1" style="background: {{ $currentColor }};">
-                เครดิต: {{ $creditStatus }}
-            </span>
+            <div class="d-flex gap-2 flex-column align-items-end">
+                <span class="badge px-2 py-1" style="background: {{ $currentColor }};">
+                    เครดิต: {{ $creditStatus }}
+                </span>
+                <span class="badge px-2 py-1" style="background-color: {{ $identityBadge['color'] }};">
+                    {{ $identityBadge['text'] }}
+                </span>
+            </div>
         </div>
         @endauth
     </div>
 
+    <!-- Mobile Menu -->
     <div id="mobile-menu" class="d-md-none px-4">
         <a href="/" class="menu-link">หน้าแรก</a>
-        <a href="/gold" class="menu-link">ผ่อนทอง</a>
+        <a href="{{ route('profile.edit') }}" class="menu-link">แก้ไขข้อมูลส่วนตัว</a>
+        <a href="{{ auth()->check() ? route('gold.member') : route('gold.index') }}" class="menu-link">ผ่อนทอง</a>
         <a href="/phone" class="menu-link">ผ่อนมือถือ</a>
         <a href="/contact" class="menu-link">ติดต่อเรา</a>
+
         @auth
-            <span class="menu-link">เครดิต: {{ $creditStatus }}</span>
+            <div class="d-flex gap-2 flex-column align-items-start my-2">
+                <span class="badge px-2 py-1" style="background: {{ $currentColor }};">
+                    เครดิต: {{ $creditStatus }}
+                </span>
+                <span class="badge px-2 py-1" style="background-color: {{ $identityBadge['color'] }};">
+                    {{ $identityBadge['text'] }}
+                </span>
+            </div>
+
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
-                <button class="btn-rounded w-100">ออกจากระบบ</button>
+                <button class="btn-rounded w-100 btn-logout">ออกจากระบบ</button>
             </form>
         @else
             <a href="{{ route('login') }}" class="btn-rounded w-100">เข้าสู่ระบบ</a>
         @endauth
     </div>
 </nav>
+
 
 <div class="container py-4 {{ request()->is('login') ? 'd-flex align-items-center justify-content-center flex-grow-1' : '' }}" 
      id="content-wrapper"
@@ -151,5 +182,8 @@ window.addEventListener('resize', () => {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 @yield('scripts')
+
+@livewireScripts
+@filamentScripts
 </body>
 </html>

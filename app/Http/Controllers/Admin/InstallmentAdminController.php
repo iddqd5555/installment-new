@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use App\Models\InstallmentPayment;
 use App\Notifications\PaymentStatusUpdated;
+use Illuminate\Support\Facades\Cache;
 
 
 class InstallmentAdminController extends Controller
@@ -52,12 +53,21 @@ class InstallmentAdminController extends Controller
         return redirect()->route('admin.installments.index')->with('success', 'เพิ่มข้อมูลสินค้าสำเร็จ!');
     }
 
-    public function edit($id)
-    {
+    public function edit($id) {
         $installment = InstallmentRequest::findOrFail($id);
-        return view('admin.installments.edit', compact('installment'));
-    }
+        $goldPrices = Cache::get('gold_prices_daily', [
+            'ornament_sell' => 0, 
+            'ornament_buy' => 0, 
+            'ornament_buy_gram' => 0
+        ]);
 
+        // ✅ แปลง string เป็น float ก่อนส่งให้ view
+        $goldPrices['ornament_sell'] = (float) str_replace(',', '', $goldPrices['ornament_sell']);
+        $goldPrices['ornament_buy'] = (float) str_replace(',', '', $goldPrices['ornament_buy']);
+        $goldPrices['ornament_buy_gram'] = (float) str_replace(',', '', $goldPrices['ornament_buy_gram']);
+
+        return view('admin.installments.edit', compact('installment', 'goldPrices'));
+    }
     // รวมฟังก์ชัน update ที่ซ้ำกันแล้ว ✅
     public function update(Request $request, $id)
     {
@@ -114,6 +124,24 @@ class InstallmentAdminController extends Controller
         return view('admin.requests.pending', compact('requests'));
     }
 
+    public function approve($id)
+    {
+        $request = InstallmentRequest::findOrFail($id);
+        $request->status = 'approved';
+        $request->save();
+
+        return redirect()->route('installments.index')->with('success', 'อนุมัติคำขอเรียบร้อยแล้วค่ะ!');
+    }
+
+    // ปฏิเสธคำขอผ่อนทอง
+    public function reject($id)
+    {
+        $request = InstallmentRequest::findOrFail($id);
+        $request->status = 'rejected';
+        $request->save();
+
+        return redirect()->route('installments.index')->with('error', 'ปฏิเสธคำขอเรียบร้อยค่ะ!');
+    }
     public function verify($id)
     {
         $installmentRequest = InstallmentRequest::findOrFail($id);
@@ -143,6 +171,28 @@ class InstallmentAdminController extends Controller
         }
 
         return back()->with('success', 'อนุมัติและสร้างตารางผ่อนชำระสำเร็จ');
+    }
+
+    // ✅ ฟังก์ชันจัดการสถานะคำขอของ Guest
+    public function updateGuestStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,checked,rejected',
+        ]);
+
+        $installmentRequest = InstallmentRequest::findOrFail($id);
+
+        // ตรวจสอบว่าคำขอนี้มาจาก Guest จริงหรือไม่ (ไม่มี user_id)
+        if ($installmentRequest->user_id !== null) {
+            return redirect()->back()->with('error', '❌ คำขอนี้ไม่ใช่คำขอจาก Guest');
+        }
+
+        // อัปเดตสถานะของ Guest ตามที่เลือก
+        $installmentRequest->update([
+            'status' => $request->status,
+        ]);
+
+        return redirect()->back()->with('success', '✅ อัปเดตสถานะของ Guest สำเร็จ!');
     }
 
     private function fetchGoldPriceFromApi()

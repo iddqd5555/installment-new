@@ -42,14 +42,46 @@ class AuthenticatedSessionController extends Controller
         return back()->withErrors(['password' => 'รหัสผ่านไม่ถูกต้อง'])->withInput(['phone' => $request->phone])->with('show_password', true);
     }
 
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login');
+    }
+
+    public function destroyAdmin(Request $request)
+    {
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('admin.login');
+    }
+
+    // หน้า login Admin
+    public function createAdmin()
+    {
+        return view('admin.auth.login');
+    }
+
+    // ตรวจสอบ Admin
+    public function storeAdmin(Request $request)
+    {
+        $credentials = $request->validate([
+            'prefix' => ['required'],
+            'username' => ['required'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::guard('admin')->attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        return back()->withErrors([
+            'username' => 'Invalid credentials.',
+        ]);
     }
 }

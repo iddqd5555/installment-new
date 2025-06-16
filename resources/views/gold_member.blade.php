@@ -1,87 +1,180 @@
 @extends('layouts.app')
 
 @section('content')
+
+<style>
+.gold-table {
+    border-collapse: collapse;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+.gold-table th {
+    background-color: #f9b115;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    font-size: 16px;
+    padding: 10px;
+}
+.gold-table td {
+    background-color: #fff6d9;
+    color: #333;
+    text-align: center;
+    font-size: 16px;
+    padding: 12px;
+    border-bottom: 1px solid #f9e4aa;
+}
+select.form-control {
+    appearance: auto !important;
+    -webkit-appearance: menulist !important;
+    -moz-appearance: menulist !important;
+    padding-right: 1rem !important;
+    background-image: none !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+}
+</style>
+
 <div class="container py-5">
-    <h3 class="text-center">🔒 ระบบสมาชิก (ผ่อนทอง)</h3>
-
-    <!-- ตารางราคาทองคำจาก API -->
-    @if($goldPrices)
-        <h4 class="mb-4 text-center">💎 ราคาทองคำวันนี้ (อ้างอิงจากสมาคมค้าทองคำ)</h4>
-        <table class="table table-bordered text-center">
-            <thead class="table-success">
-                <tr>
-                    <th>ประเภททอง</th>
-                    <th>รับซื้อ (บาท)</th>
-                    <th>ขายออก (บาท)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>ทองคำแท่ง</strong></td>
-                    <td>{{ $goldPrices['bar_buy'] }}</td>
-                    <td>{{ $goldPrices['bar_sell'] }}</td>
-                </tr>
-                <tr>
-                    <td><strong>ทองรูปพรรณ</strong></td>
-                    <td>{{ $goldPrices['ornament_buy'] }}</td>
-                    <td id="current_gold_price">{{ $goldPrices['ornament_sell'] }}</td>
-                </tr>
-            </tbody>
-        </table>
-    @else
-        <div class="alert alert-danger text-center">
-            ⚠️ ไม่สามารถดึงราคาทองล่าสุดได้ กรุณารีเฟรชอีกครั้งค่ะ
-        </div>
-    @endif
-
-    <!-- ฟอร์มสำหรับการผ่อนทอง -->
-    <form method="POST" action="{{ route('gold.request.store') }}">
+    <h3 class="mb-4 text-center">💎 ราคาทองรูปพรรณวันนี้ (96.5%)</h3>
+        <table class="gold-table">
+        <thead>
+            <tr>
+                <th>ประเภททองคำ</th>
+                <th>ราคาขาย (บาท)</th>
+                <th>ราคารับซื้อ (บาท)</th>
+                <th>ราคารับซื้อ (กรัม)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>ทองรูปพรรณ 96.5%</td>
+                <td>{{ ($goldPrices && $goldPrices['ornament_sell'] != '0') ? number_format($goldPrices['ornament_sell'], 2) : 'ระบบไม่สามารถดึงราคาทองได้' }}</td>
+                <td>{{ ($goldPrices && $goldPrices['ornament_buy'] != '0') ? number_format($goldPrices['ornament_buy'], 2) : '-' }}</td>
+                <td>{{ ($goldPrices && $goldPrices['ornament_buy_gram'] != '0') ? number_format($goldPrices['ornament_buy_gram'], 2) : '-' }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <form method="POST" action="{{ route('gold.request.store') }}" id="goldForm">
         @csrf
+        <input type="hidden" name="fullname" value="{{ auth()->user()->name }}">
+        <input type="hidden" name="phone" value="{{ auth()->user()->phone }}">
+        <input type="hidden" name="id_card" value="{{ auth()->user()->id_card_number }}">
 
         <div class="mb-3">
-            <label for="gold_amount">น้ำหนักทองที่ต้องการผ่อน (บาท)</label>
-            <input type="number" step="0.01" name="gold_amount" id="gold_amount" class="form-control" required>
+            <label>ราคาทองต่อบาท (กรณีไม่มีราคาจากระบบ)</label>
+            <input type="number" step="0.01" class="form-control" id="manual_gold_price" 
+                value="{{ ($goldPrices && isset($goldPrices['ornament_sell']) && $goldPrices['ornament_sell'] != '0') ? $goldPrices['ornament_sell'] : 50000 }}" required>
         </div>
 
         <div class="mb-3">
-            <label for="total_price">ราคารวมทองคำ (บาท)</label>
-            <input type="text" id="total_price" class="form-control" readonly>
-        </div>
-
-        <div class="mb-3">
-            <label for="installment_period">ระยะเวลาผ่อน (เดือน)</label>
-            <select name="installment_period" id="installment_period" class="form-select">
-                <option value="6">6 เดือน</option>
-                <option value="12">12 เดือน</option>
-                <option value="18">18 เดือน</option>
+            <label>ระยะเวลาผ่อน</label>
+            <select class="form-control" name="installment_period" id="installment_period">
+                <option value="30">30 วัน</option>
+                <option value="45">45 วัน</option>
+                <option value="60">60 วัน</option>
             </select>
         </div>
 
-        <button type="submit" class="btn btn-success">ส่งคำขอผ่อนทอง</button>
+        <div class="mb-3">
+            <label>จำนวนเงินที่ต้องการผ่อน (บาท)</label>
+            <input type="number" step="0.01" class="form-control" id="baht_input" name="gold_price" required>
+        </div>
+
+        <div class="mb-3">
+            <label>น้ำหนักทอง (บาททองคำ)</label>
+            <input type="number" step="0.01" class="form-control" id="gold_weight_input" name="gold_amount" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">ส่งคำขอผ่อนทอง</button>
     </form>
 </div>
-
+<!-- อัปเดต Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ยืนยันการส่งข้อมูลผ่อนทอง</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>ชื่อ-นามสกุล:</strong> <span id="modalFullName"></span></p>
+                <p><strong>เลขบัตรประชาชน:</strong> <span id="modalIDCard"></span></p>
+                <p><strong>เบอร์โทรศัพท์:</strong> <span id="modalPhone"></span></p>
+                <p><strong>จำนวนเงินที่ผ่อน:</strong> <span id="modalGoldPrice"></span> บาท</p>
+                <p><strong>ระยะเวลาผ่อน:</strong> <span id="modalPeriod"></span> วัน</p>
+                <p><strong>ยอดรวมที่ต้องผ่อน:</strong> <span id="modalTotalPayment"></span> บาท</p>
+                <p><strong>ยอดที่ต้องชำระต่อวัน:</strong> <span id="modalDailyPayment"></span> บาท</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="submitForm()">ยืนยันส่งข้อมูล</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    @if($goldPrices && isset($goldPrices["ornament_sell"]))
-        const goldPrice = parseFloat('{{ str_replace(",", "", $goldPrices["ornament_sell"]) }}');
-    @else
-        const goldPrice = 0;
-    @endif
-    
-    const goldAmountInput = document.getElementById('gold_amount');
-    const totalPriceInput = document.getElementById('total_price');
+document.addEventListener('DOMContentLoaded', function() {
+    const bahtInput = document.getElementById('baht_input');
+    const goldWeightInput = document.getElementById('gold_weight_input');
+    const installmentPeriod = document.getElementById('installment_period');
+    const idCard = document.querySelector('input[name="id_card"]').value;
+    const maxLimit = 10000;
+    const defaultGoldPrice = 50000;
 
-    goldAmountInput.addEventListener('input', function () {
-        const goldAmount = parseFloat(this.value) || 0;
-        if (goldPrice > 0) {
-            totalPriceInput.value = (goldAmount * goldPrice).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        } else {
-            totalPriceInput.value = 'ยังไม่มีข้อมูลราคาทอง';
-        }
+    function getGoldPrice() {
+        return parseFloat(document.getElementById('manual_gold_price').value) || defaultGoldPrice;
+    }
+
+    function calculateInstallment() {
+        const goldPrice = getGoldPrice();
+        const multipliers = {30: 1.27, 45: 1.45, 60: 1.66};
+        const days = parseInt(installmentPeriod.value);
+        const amount = parseFloat(bahtInput.value) || 0;
+        const totalAmount = amount * multipliers[days];
+        const dailyPayment = totalAmount / days;
+
+        document.getElementById('modalFullName').innerText = '{{ auth()->user()->name }}';
+        document.getElementById('modalIDCard').innerText = '{{ auth()->user()->id_card_number }}';
+        document.getElementById('modalPhone').innerText = '{{ auth()->user()->phone }}';
+        document.getElementById('modalGoldPrice').innerText = amount.toFixed(2);
+        document.getElementById('modalPeriod').innerText = days;
+        document.getElementById('modalTotalPayment').innerText = totalAmount.toFixed(2);
+        document.getElementById('modalDailyPayment').innerText = dailyPayment.toFixed(2);
+    }
+
+    bahtInput.addEventListener('input', function() {
+        let baht = parseFloat(this.value) || 0;
+        let goldWeight = baht / getGoldPrice();
+        goldWeightInput.value = goldWeight.toFixed(2);
+        calculateInstallment();
     });
+
+    goldWeightInput.addEventListener('input', function() {
+        let goldWeight = parseFloat(this.value) || 0;
+        let baht = goldWeight * getGoldPrice();
+        bahtInput.value = baht.toFixed(2);
+        calculateInstallment();
+    });
+
+    installmentPeriod.addEventListener('change', calculateInstallment);
+
+    // Modal Confirm
+    document.getElementById('goldForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        calculateInstallment();
+        let modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        modal.show();
+    });
+
+    // ส่งฟอร์มจริง
+    window.submitForm = function(){
+        document.getElementById('goldForm').submit();
+    };
 });
 </script>
-
 
 @endsection
