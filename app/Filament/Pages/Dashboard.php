@@ -7,11 +7,12 @@ use App\Filament\Widgets\StatsOverview;
 
 class Dashboard extends BaseDashboard
 {
+    protected static ?string $navigationIcon = 'heroicon-o-home';
+
     protected function getHeaderWidgets(): array
     {
         return [
             StatsOverview::class,
-            // เพิ่ม Widget อื่น ๆ ได้
         ];
     }
 }
