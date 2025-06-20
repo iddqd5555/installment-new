@@ -10,6 +10,7 @@ use App\Filament\Resources\BankAccountResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\InstallmentRequestResource;
 use App\Filament\Resources\PaymentResource;
+use App\Filament\Pages\Dashboard;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -32,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
                 PaymentResource::class,
             ])
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ]);
     }
 }
