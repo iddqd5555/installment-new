@@ -24,23 +24,20 @@ class Login extends BaseLogin
 
     public function authenticate(): ?LoginResponse
     {
-        $credentials = [
-            'username' => $this->username,
-            'password' => $this->password,
-        ];
-
         $admin = Admin::where('prefix', $this->prefix)
-            ->where('username', $this->username)
-            ->first();
+        ->where('username', $this->username)
+        ->first();
 
-        if (!$admin || !Auth::guard('admin')->attempt($credentials)) {
-            throw ValidationException::withMessages([
-                'username' => __('ข้อมูลเข้าสู่ระบบไม่ถูกต้อง'),
-            ]);
-        }
+    if (!$admin || !\Hash::check($this->password, $admin->password)) {
+        throw ValidationException::withMessages([
+            'username' => __('ข้อมูลเข้าสู่ระบบไม่ถูกต้อง'),
+        ]);
+    }
 
-        session()->regenerate();
+    // login ให้สำเร็จ
+    Auth::guard('admin')->login($admin);
+    session()->regenerate();
 
-        return app(LoginResponse::class);
+    return app(LoginResponse::class);
     }
 }
