@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
 
 class InstallmentRequestResource extends Resource
 {
@@ -22,9 +23,18 @@ class InstallmentRequestResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('ชื่อ-สกุล')
-                    ->sortable(),
+                TextColumn::make('user.first_name')
+                    ->label('ชื่อ')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->join('users', 'installment_requests.user_id', '=', 'users.id')
+                                    ->orderBy('users.first_name', $direction);
+                    }),
+                TextColumn::make('user.last_name')
+                    ->label('นามสกุล')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->join('users', 'installment_requests.user_id', '=', 'users.id')
+                                    ->orderBy('users.last_name', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('user.phone')
                     ->label('เบอร์โทรศัพท์'),
@@ -37,6 +47,9 @@ class InstallmentRequestResource extends Resource
 
                 Tables\Columns\TextColumn::make('installment_period')
                     ->label('จำนวนวัน'),
+
+                Tables\Columns\TextColumn::make('daily_payment_amount')->label('ยอดชำระรายวัน'),
+                Tables\Columns\TextColumn::make('penalty_amount')->label('ค่าปรับรายวัน'),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('สถานะ')->badge()
@@ -129,6 +142,9 @@ class InstallmentRequestResource extends Resource
                 ])
                 ->required()
                 ->reactive(),
+
+            Forms\Components\TextInput::make('daily_payment_amount')->numeric()->label('ยอดชำระรายวัน'),
+            Forms\Components\TextInput::make('penalty_amount')->numeric()->label('ค่าปรับรายวัน'),
 
             Forms\Components\Select::make('status')
                 ->label('สถานะ')

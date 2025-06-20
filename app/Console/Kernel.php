@@ -61,6 +61,31 @@ class Kernel extends ConsoleKernel
         })->dailyAt('09:00');
     }
 
+    $schedule->call(function () {
+        $installments = InstallmentRequest::with('payments')
+            ->where('status', 'approved')
+            ->get();
+
+        foreach ($installments as $installment) {
+            $todayPayment = $installment->daily_payment_amount;
+            $paidToday = $installment->payments()
+                            ->whereDate('payment_due_date', now()->toDateString())
+                            ->where('status', 'approved')
+                            ->sum('amount_paid');
+
+            if ($paidToday < $todayPayment) {
+                $penaltyAmount = ($todayPayment - $paidToday) * ($installment->penalty_rate / 100);
+                InstallmentPayment::create([
+                    'installment_request_id' => $installment->id,
+                    'amount_paid' => 0,
+                    'status' => 'penalty',
+                    'payment_due_date' => now(),
+                    'penalty_amount' => $penaltyAmount,
+                ]);
+            }
+        }
+    })->dailyAt('23:59');
+
     protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');

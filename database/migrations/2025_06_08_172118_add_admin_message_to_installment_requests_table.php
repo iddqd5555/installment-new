@@ -9,15 +9,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('installment_requests', function (Blueprint $table) {
-            $table->text('admin_message')->nullable()->after('status'); 
-            // ข้อความจากแอดมิน (อนุญาตให้เป็น null)
+            if (!Schema::hasColumn('installment_requests', 'status')) {
+                $table->string('status')->default('pending');
+            }
+
+            if (!Schema::hasColumn('installment_requests', 'admin_message')) {
+                $table->text('admin_message')->nullable()->after('status');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('installment_requests', function (Blueprint $table) {
-            $table->dropColumn('admin_message');
+            if (Schema::hasColumn('installment_requests', 'admin_message')) {
+                $table->dropColumn('admin_message');
+            }
+            if (Schema::hasColumn('installment_requests', 'status')) {
+                $table->dropColumn('status');
+            }
         });
     }
 };

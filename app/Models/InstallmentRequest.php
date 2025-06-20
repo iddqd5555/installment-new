@@ -43,8 +43,10 @@ class InstallmentRequest extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function calculateInstallment($goldPrice, $periodDays)
+    public function calculateInstallment($goldPrice, $goldAmount, $periodDays)
     {
+        $totalGoldPrice = $goldPrice * $goldAmount;
+
         $rates = [
             30 => 1.27,
             45 => 1.45,
@@ -55,21 +57,14 @@ class InstallmentRequest extends Model
             throw new \Exception('Invalid installment period.');
         }
 
-        $totalPrice = $goldPrice * $rates[$periodDays];
-        $dailyPayment = $totalPrice / $periodDays;
-
-        $firstPaymentMultiplier = [
-            30 => 2,
-            45 => 3,
-            60 => 4,
-        ];
-
-        $firstPayment = $dailyPayment * $firstPaymentMultiplier[$periodDays];
+        $totalPrice = $totalGoldPrice * $rates[$periodDays];
+        $dailyPayment = round($totalPrice / $periodDays, 2);
 
         return [
             'total_price' => round($totalPrice, 2),
-            'daily_payment' => round($dailyPayment, 2),
-            'first_payment' => round($firstPayment, 2),
+            'daily_payment' => $dailyPayment,
+            'total_gold_price' => $totalGoldPrice,
         ];
     }
+
 }

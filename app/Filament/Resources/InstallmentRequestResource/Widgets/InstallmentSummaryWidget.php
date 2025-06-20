@@ -1,6 +1,6 @@
 <?php
 
-namespace admin\InstallmentRequestResource\Widgets;
+namespace App\Filament\Resources\InstallmentRequestResource\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;

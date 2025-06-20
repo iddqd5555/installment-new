@@ -13,30 +13,50 @@ class Admin extends Authenticatable
         'prefix',
         'username',
         'password',
-        'role', // ✅ เพิ่มคอลัมน์นี้เพื่อแยกประเภท Admin
+        'role',
     ];
 
     protected $hidden = [
         'password', 'remember_token',
     ];
 
-    // ✅ เพิ่ม Role แบบ constant
-    const ROLE_SUPER_ADMIN = 'super_admin';
-    const ROLE_APPROVER = 'approver';
+    // Roles ชัดเจน 3 ระดับ
+    const ROLE_STAFF = 'staff';
+    const ROLE_ADMIN = 'admin';
+    const ROLE_OAA = 'OAA';
 
-    // ตรวจสอบบทบาท
-    public function isSuperAdmin(): bool
+    public function isStaff(): bool
     {
-        return $this->role === self::ROLE_SUPER_ADMIN;
+        return $this->role === self::ROLE_STAFF;
     }
 
-    public function isApprover(): bool
+    public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_APPROVER;
+        return $this->role === self::ROLE_ADMIN;
     }
 
+    public function isOAA(): bool
+    {
+        return $this->role === self::ROLE_OAA;
+    }
+
+    public static function canViewAny($user): bool {
+    return $user->hasRole(['admin', 'OAA']);
+    }
+    public static function canEdit($user, $record): bool {
+        return $user->hasRole(['admin', 'OAA']);
+    }
+    public static function canDelete($user, $record): bool {
+        return $user->isOAA();
+    }
+    public function hasRole(array $roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    // ชื่อที่แสดงคือ username
     public function getNameAttribute(): string
     {
-        return $this->username; // ใช้ username เป็น name ไปเลย
+        return $this->username;
     }
 }

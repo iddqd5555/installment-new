@@ -35,4 +35,36 @@ class InstallmentController extends Controller
 
         return redirect()->back()->with('success', 'สมัครผ่อนสำเร็จ รอการอนุมัติค่ะ!');
     }
+
+    // InstallmentController.php (แก้ไข)
+    public function uploadSlip(Request $request, $installmentRequestId)
+    {
+        $installmentRequest = InstallmentRequest::findOrFail($installmentRequestId);
+        $today = now()->toDateString();
+
+        $paidToday = $installmentRequest->payments()
+                        ->whereDate('payment_due_date', $today)
+                        ->where('status', 'approved')
+                        ->sum('amount_paid');
+
+        $dueToday = max($installmentRequest->daily_payment_amount - $paidToday, 0);
+
+        $request->validate([
+            'amount_paid' => 'required|numeric|max:' . $dueToday,
+            'payment_proof' => 'required|image|max:2048'
+        ]);
+
+        $filePath = $request->file('payment_proof')->store('payment-slips', 'public');
+
+        InstallmentPayment::create([
+            'installment_request_id' => $installmentRequestId,
+            'amount_paid' => $request->amount_paid,
+            'payment_proof' => $filePath,
+            'status' => 'pending',
+            'payment_due_date' => now(),
+        ]);
+
+        return back()->with('success', 'อัปโหลดสลิปสำเร็จแล้วค่ะ');
+    }
+
 }

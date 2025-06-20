@@ -5,8 +5,11 @@ namespace App\Providers\Filament;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
-use App\Filament\Widgets\StatsOverview;
+use App\Filament\Resources\AdminResource;
+use App\Filament\Resources\BankAccountResource;
+use App\Filament\Resources\UserResource;
+use App\Filament\Resources\InstallmentRequestResource;
+use App\Filament\Resources\PaymentResource;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -15,38 +18,21 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->id('admin')
             ->path('admin')
-            ->authGuard('admin') // ✅ ใช้ guard admin ชัดเจน
+            ->authGuard('admin')
+            ->middleware(['web'])
+            ->authMiddleware(['auth:admin'])
+            ->login(\App\Filament\Admin\Pages\Auth\Login::class)
             ->brandName('WISDOM GOLD BACKEND')
             ->favicon(asset('images/favicon.ico'))
-            ->brandLogo(null) // ✅ ปิดการใช้รูปชัดเจน (ถ้าต้องการเปิดให้แก้ไขตรงนี้)
-            ->colors([
-                'primary' => Color::Amber,
-            ])
-            ->middleware([
-                'web', 'check_admin' // ✅ Middleware แยกเฉพาะ Admin
-            ])
-            ->navigationGroups([
-                'การจัดการสมาชิก',
-                'การจัดการรายการผ่อน',
-                'การจัดการการเงิน',
-            ])
             ->resources([
-                \App\Filament\Resources\BankAccountResource::class,
-                //\App\Filament\Resources\AdminResource::class, // ✅ เพิ่ม resource สำหรับจัดการแอดมิน
-                \App\Filament\Resources\UserResource::class, // ✅ จัดการสมาชิกผู้ใช้งาน
-                \App\Filament\Resources\InstallmentRequestResource::class, // ✅ จัดการรายการผ่อน
-                 \App\Filament\Resources\PaymentResource::class, // สามารถเปิดใช้งานตามต้องการ
-            ])
-            ->discoverPages(
-                in: app_path('Filament/Pages'),
-                for: 'admin'
-            )
-            ->widgets([
-                StatsOverview::class,
+                AdminResource::class,
+                BankAccountResource::class,
+                UserResource::class,
+                InstallmentRequestResource::class,
+                PaymentResource::class,
             ])
             ->pages([
                 Pages\Dashboard::class,
-            ])
-            ->plugins([]);
+            ]);
     }
 }

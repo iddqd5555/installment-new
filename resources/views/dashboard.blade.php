@@ -40,7 +40,7 @@
                 {{-- หลอดความคืบหน้าจำนวนเงิน --}}
                 <div class="card bg-success text-white mb-3">
                     <div class="card-body">
-                        <p><strong>💵 ยอดที่ต้องชำระเดือนนี้:</strong> 
+                        <p><strong>💵 ยอดที่ต้องชำระวันนี้:</strong> 
                         @php
                             // ประกาศตัวแปร monthlyPayment ก่อนใช้งาน
                             $monthlyPayment = $request->total_with_interest / $request->installment_period;
@@ -87,7 +87,13 @@
                 </div>
 
                 @php
-                    $monthlyPayment = $request->total_with_interest / $request->installment_period;
+                    $dailyPayment = $request->daily_payment_amount;
+                    $paidToday = $request->installmentPayments()
+                                    ->whereDate('payment_due_date', now()->toDateString())
+                                    ->where('status', 'approved')
+                                    ->sum('amount_paid');
+
+                    $dueToday = max($dailyPayment - $paidToday, 0);
                 @endphp
 
                 <p><strong>📅 เดือนที่เหลือ:</strong> {{ $request->remaining_months }} เดือน</p>
@@ -101,9 +107,12 @@
                 </p>
 
                 {{-- ส่วนชำระเงินและอัปโหลดสลิปของคุณเดิม --}}
-                <div class="card shadow-sm mt-4">
-                    <div class="card-body">
-                        <h5>📌 ช่องทางการชำระเงิน</h5>
+                <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#bankInfo{{ $request->id }}" aria-expanded="false">
+                    ข้อมูลธนาคาร
+                </button>
+
+                <div class="collapse mt-3" id="bankInfo{{ $request->id }}">
+                    <div class="card card-body">
                         @forelse($bankAccounts as $bank)
                             <div class="bank-info my-2 d-flex align-items-center">
                                 <img src="{{ asset('storage/'.$bank->logo) }}" width="60" alt="{{ $bank->bank_name }}" class="me-3">

@@ -15,9 +15,9 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
-            Route::middleware(['web']) // ใช้ web ธรรมดาไม่ต้อง auth ที่นี่
-                ->prefix('manage')
-                ->group(base_path('routes/admin.php'));
+            //Route::middleware(['web']) // ใช้ web ธรรมดาไม่ต้อง auth ที่นี่
+             //   ->prefix('manage')
+             //   ->group(base_path('routes/admin.php'));
         });
     }
 }

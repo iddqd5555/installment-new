@@ -3,12 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\InstallmentRequestController;
-use App\Http\Controllers\Admin\InstallmentAdminController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PaymentProofController;
-use App\Http\Controllers\Admin\PaymentInfoController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use Illuminate\Http\Request;
 
 // หน้าแรก สำหรับผู้ใช้ที่ไม่ได้ล็อคอิน
 Route::get('/', function () {
@@ -66,33 +65,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
     Route::get('/payment-info', [BankAccountController::class, 'index'])->name('payment-info');
 });
-
-// กลุ่ม routes สำหรับ Admin เท่านั้น (จัดการระบบทั้งหมด)
-/*Route::middleware(['web', 'auth', 'check_admin'])
-    ->prefix('manage')
-    ->name('manage.')
-    ->group(function () {
-        Route::get('/installments', [InstallmentAdminController::class, 'index'])->name('installments.index');
-        Route::patch('/requests/verify/{id}', [InstallmentAdminController::class, 'verify'])->name('requests.verify');
-        Route::get('/installments/create', [InstallmentAdminController::class, 'create'])->name('installments.create');
-        Route::post('/installments', [InstallmentAdminController::class, 'store'])->name('installments.store');
-        Route::get('/installments/{id}/edit', [InstallmentAdminController::class, 'edit'])->name('installments.edit');
-        Route::patch('/installments/{id}', [InstallmentAdminController::class, 'update'])->name('installments.update');
-        Route::delete('/installments/{id}', [InstallmentAdminController::class, 'destroy'])->name('installments.destroy');
-        Route::patch('/installments/{id}/update-status', [InstallmentAdminController::class, 'updateStatus'])->name('installments.updateStatus');
-        
-        Route::post('/installments/{id}/update-guest-status', [InstallmentAdminController::class, 'updateGuestStatus'])->name('installments.updateGuestStatus');
-
-        Route::get('/payments', [InstallmentAdminController::class, 'payments'])->name('payments.index');
-        Route::patch('/payments/{paymentId}/approve', [InstallmentAdminController::class, 'approvePayment'])->name('payments.approve');
-        Route::patch('/payments/{paymentId}/reject', [InstallmentAdminController::class, 'rejectPayment'])->name('payments.reject');
-
-        Route::get('/payment-settings', function () {
-            return view('admin.payment-settings');
-        })->name('payment-settings');
-
-        Route::post('/payment-info/store', [PaymentInfoController::class, 'store'])->name('payment-info.store');
-    });*/
 
 // Authentication Routes
 require __DIR__.'/auth.php';
