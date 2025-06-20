@@ -14,7 +14,7 @@ class AdminSeeder extends Seeder
             [
                 'prefix' => 'WISDOMGOLD',
                 'username' => 'oaa', // ผู้บริหารหรือผู้ดูแลระบบสูงสุด
-                'password' => Hash::make('รหัสผ่านสำหรับOAA'),
+                'password' => Hash::make('0870303002'),
                 'role' => 'OAA',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -22,7 +22,7 @@ class AdminSeeder extends Seeder
             [
                 'prefix' => 'WISDOMGOLD',
                 'username' => 'admin',
-                'password' => Hash::make('รหัสผ่านสำหรับadmin'),
+                'password' => Hash::make('0870303002'),
                 'role' => 'admin',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -30,7 +30,7 @@ class AdminSeeder extends Seeder
             [
                 'prefix' => 'WISDOMGOLD',
                 'username' => 'staff',
-                'password' => Hash::make('รหัสผ่านสำหรับstaff'),
+                'password' => Hash::make('0870303002'),
                 'role' => 'staff',
                 'created_at' => now(),
                 'updated_at' => now(),
