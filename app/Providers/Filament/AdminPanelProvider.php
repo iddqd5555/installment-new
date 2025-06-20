@@ -21,7 +21,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('admin')
             ->middleware(['web'])
             ->authMiddleware(['auth:admin'])
-            ->login()
+            ->login(\App\Filament\Admin\Pages\Auth\Login::class)
             ->brandName('WISDOM GOLD BACKEND')
             ->favicon(asset('images/favicon.ico'))
             ->resources([
