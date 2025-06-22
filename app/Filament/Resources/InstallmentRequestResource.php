@@ -11,6 +11,8 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class InstallmentRequestResource extends Resource
 {
@@ -29,6 +31,7 @@ class InstallmentRequestResource extends Resource
                         return $query->join('users', 'installment_requests.user_id', '=', 'users.id')
                                     ->orderBy('users.first_name', $direction);
                     }),
+
                 TextColumn::make('user.last_name')
                     ->label('นามสกุล')
                     ->sortable(query: function ($query, $direction) {
@@ -36,63 +39,93 @@ class InstallmentRequestResource extends Resource
                                     ->orderBy('users.last_name', $direction);
                     }),
 
-                Tables\Columns\TextColumn::make('user.phone')
+                TextColumn::make('user.phone')
                     ->label('เบอร์โทรศัพท์'),
 
-                Tables\Columns\TextColumn::make('gold_amount')
+                TextColumn::make('gold_amount')
                     ->label('จำนวนทอง (บาท)'),
 
-                Tables\Columns\TextColumn::make('approved_gold_price')
+                TextColumn::make('approved_gold_price')
                     ->label('ราคาทองอนุมัติ'),
 
-                Tables\Columns\TextColumn::make('installment_period')
+                TextColumn::make('installment_period')
                     ->label('จำนวนวัน'),
 
-                Tables\Columns\TextColumn::make('daily_payment_amount')->label('ยอดชำระรายวัน'),
-                Tables\Columns\TextColumn::make('penalty_amount')->label('ค่าปรับรายวัน'),
+                TextColumn::make('daily_payment_amount')->label('ยอดชำระรายวัน'),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('penalty_amount')->label('ค่าปรับรายวัน'),
+
+                TextColumn::make('status')
                     ->label('สถานะ')->badge()
                     ->colors([
                         'warning' => 'pending',
                         'success' => 'approved',
                         'danger' => 'rejected',
                     ]),
+
+                // ✅ วางโค้ดตรงนี้เป็น column สุดท้าย
+                Tables\Columns\TextColumn::make('approvedBy.username')
+                    ->label('ผู้อนุมัติ')
+                    ->visible(fn () => in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA'])),
             ])
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
 
-                // ✅ เพิ่ม Approve Action
                 Tables\Actions\Action::make('approve')
                     ->label('อนุมัติ')
                     ->color('success')
                     ->icon('heroicon-o-check-circle')
                     ->requiresConfirmation()
                     ->action(function ($record) {
-                        $record->update(['status' => 'approved']);
+                        $adminId = Auth::guard('admin')->id();
 
-                        Notification::make()
-                            ->title('อนุมัติคำขอเรียบร้อยแล้วค่ะ')
-                            ->success()
-                            ->send();
+                        if ($record->approved_by === null || $record->approved_by === $adminId) {
+                            $record->update([
+                                'status' => 'approved',
+                                'approved_by' => $adminId
+                            ]);
+
+                            Notification::make()
+                                ->title('อนุมัติคำขอเรียบร้อยแล้วค่ะ')
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('ไม่สามารถอนุมัติได้')
+                                ->body('คำขอนี้มีพนักงานคนอื่นอนุมัติแล้ว')
+                                ->danger()
+                                ->send();
+                        }
                     })
                     ->hidden(fn($record) => $record->status === 'approved'),
 
-                // ✅ เพิ่ม Reject Action
                 Tables\Actions\Action::make('reject')
                     ->label('ปฏิเสธ')
                     ->color('danger')
                     ->icon('heroicon-o-x-circle')
                     ->requiresConfirmation()
                     ->action(function ($record) {
-                        $record->update(['status' => 'rejected']);
+                        $adminId = Auth::guard('admin')->id();
 
-                        Notification::make()
-                            ->title('ปฏิเสธคำขอเรียบร้อยแล้วค่ะ')
-                            ->danger()
-                            ->send();
+                        if ($record->approved_by === null || $record->approved_by === $adminId) {
+                            $record->update([
+                                'status' => 'rejected',
+                                'approved_by' => $adminId
+                            ]);
+
+                            Notification::make()
+                                ->title('ปฏิเสธคำขอเรียบร้อยแล้วค่ะ')
+                                ->danger()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('ไม่สามารถปฏิเสธได้')
+                                ->body('คำขอนี้มีพนักงานคนอื่นอนุมัติหรือปฏิเสธแล้ว')
+                                ->danger()
+                                ->send();
+                        }
                     })
                     ->hidden(fn($record) => $record->status === 'rejected'),
 
@@ -106,12 +139,22 @@ class InstallmentRequestResource extends Resource
     {
         return $form->schema([
             Forms\Components\Select::make('user_id')
-                ->relationship('user', 'name')
-                ->label('สมาชิก')
-                ->searchable(),
+                ->relationship('user', 'id')
+                ->label('ID User')
+                ->searchable()
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, $set) {
+                    $user = \App\Models\User::find($state);
+                    if ($user) {
+                        $set('fullname', $user->first_name . ' ' . $user->last_name);
+                        $set('phone', $user->phone);
+                        $set('id_card', $user->id_card_number);
+                    }
+                }),
 
             Forms\Components\TextInput::make('fullname')
-                ->label('ชื่อเต็ม')
+                ->label('ชื่อ-นามสกุล')
                 ->required(),
 
             Forms\Components\TextInput::make('phone')
@@ -125,13 +168,16 @@ class InstallmentRequestResource extends Resource
             Forms\Components\TextInput::make('gold_amount')
                 ->label('จำนวนทอง (บาท)')
                 ->numeric()
-                ->required(),
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(fn ($set, $get) => self::calculateAmounts($set, $get)),
 
             Forms\Components\TextInput::make('approved_gold_price')
                 ->label('ราคาทองที่อนุมัติ')
                 ->numeric()
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(fn ($set, $get) => self::calculateAmounts($set, $get)),
 
             Forms\Components\Select::make('installment_period')
                 ->label('จำนวนวัน')
@@ -141,10 +187,44 @@ class InstallmentRequestResource extends Resource
                     60 => '60 วัน'
                 ])
                 ->required()
-                ->reactive(),
+                ->reactive()
+                ->afterStateUpdated(fn ($set, $get) => self::calculateAmounts($set, $get)),
 
-            Forms\Components\TextInput::make('daily_payment_amount')->numeric()->label('ยอดชำระรายวัน'),
-            Forms\Components\TextInput::make('penalty_amount')->numeric()->label('ค่าปรับรายวัน'),
+            Forms\Components\TextInput::make('total_gold_price')
+                ->label('ราคารวมทองคำ (จำนวนทอง × ราคาทอง)')
+                ->numeric()
+                ->readOnly()
+                ->dehydrated(),
+
+            Forms\Components\TextInput::make('interest_rate')
+                ->label('ดอกเบี้ย (%)')
+                ->numeric()
+                ->readOnly()
+                ->dehydrated(),
+
+            Forms\Components\TextInput::make('interest_amount')
+                ->label('ดอกเบี้ย (บาท) (ยอดรวมพร้อมดอกเบี้ย - ราคารวมทองคำ)')
+                ->numeric()
+                ->readOnly()
+                ->dehydrated(),
+
+            Forms\Components\TextInput::make('total_with_interest')
+                ->label('ยอดชำระรวมพร้อมดอกเบี้ย (ราคารวมทองคำ × อัตราดอกเบี้ย)')
+                ->numeric()
+                ->readOnly()
+                ->dehydrated(),
+
+            Forms\Components\TextInput::make('daily_payment_amount')
+                ->label('ยอดชำระรายวัน (ยอดรวม ÷ จำนวนวัน)')
+                ->numeric()
+                ->required()
+                ->readOnly()
+                ->dehydrated(),
+
+            Forms\Components\TextInput::make('penalty_amount')
+                ->label('ค่าปรับรายวัน')
+                ->numeric()
+                ->default(0),
 
             Forms\Components\Select::make('status')
                 ->label('สถานะ')
@@ -154,23 +234,32 @@ class InstallmentRequestResource extends Resource
                     'rejected' => 'ปฏิเสธ'
                 ])
                 ->required(),
-
-            // ✅ เพิ่มช่องคำนวณยอดรวมอัตโนมัติ (ตามสูตรคำนวณของคุณ)
-            Forms\Components\TextInput::make('total_installment_amount')
-                ->label('ยอดชำระรวม')
-                ->numeric()
-                ->readOnly()
-                ->dehydrated()
-                ->afterStateUpdated(function ($set, $get) {
-                    if ($get('approved_gold_price') && $get('installment_period')) {
-                        $result = (new InstallmentRequest)->calculateInstallment(
-                            $get('approved_gold_price'),
-                            $get('installment_period')
-                        );
-                        $set('total_installment_amount', $result['total_price']);
-                    }
-                }),
         ]);
+    }
+
+    // สร้าง method คำนวณไว้ใช้ในทุก afterStateUpdated
+    protected static function calculateAmounts($set, $get)
+    {
+        $goldAmount = (float) $get('gold_amount');
+        $goldPrice = (float) $get('approved_gold_price');
+        $period = (int) $get('installment_period');
+
+        if ($goldAmount > 0 && $goldPrice > 0 && $period > 0) {
+            $totalGoldPrice = round($goldAmount * $goldPrice, 2);
+
+            $rates = [30 => 1.27, 45 => 1.45, 60 => 1.66];
+            $interestRate = $rates[$period] ?? 1;
+
+            $totalWithInterest = round($totalGoldPrice * $interestRate, 2);
+            $interestAmount = round($totalWithInterest - $totalGoldPrice, 2);
+            $dailyPayment = round($totalWithInterest / $period, 2);
+
+            $set('total_gold_price', $totalGoldPrice);
+            $set('interest_rate', ($interestRate - 1) * 100);
+            $set('interest_amount', $interestAmount);
+            $set('total_with_interest', $totalWithInterest);
+            $set('daily_payment_amount', $dailyPayment);
+        }
     }
 
     public static function getPages(): array
@@ -193,4 +282,47 @@ class InstallmentRequestResource extends Resource
     {
         return 'การจัดการรายการผ่อน';
     }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (in_array($admin->role, ['admin', 'OAA'])) {
+            // Admin และ OAA จะเห็นรายการที่ยังไม่อนุมัติทั้งหมด
+            return parent::getEloquentQuery()->where('status', 'pending');
+        }
+
+        // สำหรับ staff เห็นเฉพาะที่ยังไม่มีคนรับผิดชอบ หรือที่ตัวเองรับผิดชอบแล้วเท่านั้น
+        return parent::getEloquentQuery()
+            ->where('status', 'pending')
+            ->where(function ($query) use ($admin) {
+                $query->whereNull('approved_by')
+                    ->orWhere('approved_by', $admin->id);
+            })
+            ->whereDoesntHave('user.installmentRequests', function ($query) use ($admin) {
+                $query->where('approved_by', '!=', $admin->id)
+                    ->whereNotNull('approved_by');
+            });
+    }
+
+    protected static function afterFill($record, $set): void
+    {
+        if ($record) {
+            $totalGoldPrice = $record->gold_amount * $record->approved_gold_price;
+
+            $rates = [30 => 1.27, 45 => 1.45, 60 => 1.66];
+            $interestRate = $rates[$record->installment_period] ?? 1;
+            $totalWithInterest = round($totalGoldPrice * $interestRate, 2);
+
+            // คำนวณดอกเบี้ย (บาท)
+            $interestAmount = round($totalWithInterest - $totalGoldPrice, 2);
+
+            $set('total_gold_price', $totalGoldPrice);
+            $set('total_with_interest', $totalWithInterest);
+            $set('interest_rate', ($interestRate - 1) * 100); // ดอกเบี้ย (%)
+            $set('interest_amount', $interestAmount); // ดอกเบี้ย (บาท)
+            $set('daily_payment_amount', round($totalWithInterest / $record->installment_period, 2));
+        }
+    }
+
 }

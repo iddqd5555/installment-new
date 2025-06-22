@@ -11,6 +11,8 @@ use App\Filament\Resources\UserResource;
 use App\Filament\Resources\InstallmentRequestResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\StatsOverview;
+use App\Filament\Resources\ApprovedInstallmentRequestResource;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,9 +33,13 @@ class AdminPanelProvider extends PanelProvider
                 UserResource::class,
                 InstallmentRequestResource::class,
                 PaymentResource::class,
+                ApprovedInstallmentRequestResource::class,
             ])
             ->pages([
                 Dashboard::class,
-            ]);
+            ])
+            ->widgets([
+            StatsOverview::class, // ✅ ต้องเพิ่มกลับไป!
+        ]);
     }
 }

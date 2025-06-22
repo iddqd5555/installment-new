@@ -33,135 +33,132 @@
     @endif
 
     @forelse($installmentRequests as $request)
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title">📌 ผ่อนทอง ({{ number_format($request->gold_amount, 2) }} บาท)</h5>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title">📌 ผ่อนทอง ({{ number_format($request->gold_amount, 2) }} บาท)</h5>
 
-                {{-- หลอดความคืบหน้าจำนวนเงิน --}}
-                <div class="card bg-success text-white mb-3">
-                    <div class="card-body">
-                        <p><strong>💵 ยอดที่ต้องชำระวันนี้:</strong> 
+            {{-- หลอดความคืบหน้าจำนวนเงิน --}}
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    @php
+                        $dailyPayment = $request->daily_payment_amount;
+                        $paidToday = $request->installmentPayments
+                            ->where('status', 'approved')
+                            ->where('payment_due_date', now()->toDateString())
+                            ->sum('amount_paid');
+                        $dueToday = max($dailyPayment - $paidToday, 0);
+                    @endphp
+
+                    <p><strong>💵 ยอดที่ต้องชำระวันนี้:</strong> {{ number_format($dueToday, 2) }} บาท</p>
+                    <strong>ชำระแล้วทั้งหมด:</strong> {{ number_format($request->total_paid, 2) }} บาท<br>
+                    <strong>ยอดคงเหลือทั้งหมด:</strong> {{ number_format($request->remaining_amount, 2) }} บาท
+                    <div class="progress mt-2">
                         @php
-                            // ประกาศตัวแปร monthlyPayment ก่อนใช้งาน
-                            $monthlyPayment = $request->total_with_interest / $request->installment_period;
-
-                            $paidThisMonth = $request->installmentPayments
-                                ->where('status', 'approved')
-                                ->filter(function($payment) {
-                                    return \Carbon\Carbon::parse($payment->created_at)->isCurrentMonth();
-                                })
-                                ->sum('amount_paid');
-
-                            $dueThisMonth = $monthlyPayment - $paidThisMonth;
+                            $paymentProgress = $request->total_with_interest > 0
+                                ? ($request->total_paid / $request->total_with_interest) * 100
+                                : 0;
                         @endphp
-
-                        {{ number_format(max($dueThisMonth, 0), 2) }} บาท
-                        </p>
-                        <strong>ชำระแล้ว:</strong> {{ number_format($request->total_paid, 2) }} บาท<br>
-                        <strong>คงเหลือ:</strong> {{ number_format($request->remaining_amount, 2) }} บาท
-                        <div class="progress mt-2">
-                            @php
-                                $paymentProgress = $request->total_with_interest > 0
-                                    ? ($request->total_paid / $request->total_with_interest) * 100
-                                    : 0;
-                            @endphp
-                            <div class="progress-bar bg-light" style="width: {{ $paymentProgress }}%;">
-                                {{ number_format($paymentProgress, 2) }}%
-                            </div>
+                        <div class="progress-bar bg-light" style="width: {{ $paymentProgress }}%;">
+                            {{ number_format($paymentProgress, 2) }}%
                         </div>
                     </div>
                 </div>
-                {{-- หลอดความคืบหน้าระยะเวลาผ่อน --}}
-                <div class="card bg-info text-white mb-3">
-                    <div class="card-body">
-                        <strong>ระยะเวลาการผ่อน:</strong> {{ $request->installment_period }} เดือน (เหลือ {{ $request->remaining_months }} เดือน)
-                        <div class="progress mt-2">
-                            @php
-                                $timeProgress = (($request->installment_period - $request->remaining_months) / $request->installment_period) * 100;
-                            @endphp
-                            <div class="progress-bar bg-light" style="width: {{ $timeProgress }}%;">
-                                {{ number_format($timeProgress, 2) }}%
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                @php
-                    $dailyPayment = $request->daily_payment_amount;
-                    $paidToday = $request->installmentPayments()
-                                    ->whereDate('payment_due_date', now()->toDateString())
-                                    ->where('status', 'approved')
-                                    ->sum('amount_paid');
-
-                    $dueToday = max($dailyPayment - $paidToday, 0);
-                @endphp
-
-                <p><strong>📅 เดือนที่เหลือ:</strong> {{ $request->remaining_months }} เดือน</p>
-                <p><strong>💵 ยอดที่ต้องชำระครั้งถัดไป:</strong> {{ number_format($monthlyPayment, 2) }} บาท</p>
-                <p><strong>📆 วันชำระครั้งถัดไป:</strong> 
-                    @if($request->next_payment_date)
-                        {{ \Carbon\Carbon::parse($request->next_payment_date)->format('d/m/Y') }}
-                    @else
-                        ยังไม่กำหนด
-                    @endif
-                </p>
-
-                {{-- ส่วนชำระเงินและอัปโหลดสลิปของคุณเดิม --}}
-                <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#bankInfo{{ $request->id }}" aria-expanded="false">
-                    ข้อมูลธนาคาร
-                </button>
-
-                <div class="collapse mt-3" id="bankInfo{{ $request->id }}">
-                    <div class="card card-body">
-                        @forelse($bankAccounts as $bank)
-                            <div class="bank-info my-2 d-flex align-items-center">
-                                <img src="{{ asset('storage/'.$bank->logo) }}" width="60" alt="{{ $bank->bank_name }}" class="me-3">
-                                <div>
-                                    <strong>{{ $bank->bank_name }}</strong><br>
-                                    ชื่อบัญชี: {{ $bank->account_name }}<br>
-                                    เลขที่บัญชี: {{ $bank->account_number }}
-                                </div>
-                            </div>
-                        @empty
-                            <div class="alert alert-warning">⚠️ ไม่มีข้อมูลบัญชีธนาคาร</div>
-                        @endforelse
-                    </div>
-                </div>
-
-                <button class="btn btn-warning" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#uploadSlip{{ $request->id }}" aria-expanded="false">
-                    อัพโหลดสลิป
-                </button>
-
-                <div class="collapse mt-3" id="uploadSlip{{ $request->id }}">
-                    <div class="card card-body">
-                        <form id="payment-form-{{ $request->id }}" action="{{ route('payments.upload-proof', $request->id) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <input type="hidden" id="remaining_amount_{{ $request->id }}" value="{{ $request->remaining_amount }}">
-
-                            <div class="mb-3">
-                                <label class="form-label">จำนวนเงินที่โอน (บาท)</label>
-                                <input type="number" class="form-control" id="amount_paid_{{ $request->id }}" name="amount_paid" step="0.01" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">อัปโหลดสลิปธนาคาร</label>
-                                <input type="file" class="form-control" name="payment_proof" required>
-                            </div>
-                            <button class="btn btn-primary" type="submit">ส่งหลักฐานการชำระเงิน</button>
-                        </form>
-                    </div>
-                </div>
-                <hr>
-
-                🌟 ราคาทองที่อนุมัติ: <strong>{{ number_format($request->approved_gold_price, 2) }} บาท</strong><br>
-                💳 ราคารวมทองคำ: <strong>{{ number_format($request->total_gold_price, 2) }} บาท</strong><br>
-                📌 ดอกเบี้ย ({{ $request->interest_rate }}%): <strong>{{ number_format($request->interest_amount, 2) }} บาท</strong><br>
-                💰 เงินรวมดอกเบี้ย: <strong>{{ number_format($request->total_with_interest, 2) }} บาท</strong><br>
             </div>
+
+            {{-- หลอดความคืบหน้าระยะเวลาผ่อน --}}
+            <div class="card bg-info text-white mb-3">
+                <div class="card-body">
+                    @php
+                        $startDate = \Carbon\Carbon::parse($request->start_date);
+                        $endDate = $startDate->copy()->addDays($request->installment_period);
+                        $today = \Carbon\Carbon::today();
+                        $daysPassed = $today->diffInDays($startDate);
+                        $remainingDays = max($request->installment_period - $daysPassed, 0);
+                        $timeProgress = ($daysPassed / $request->installment_period) * 100;
+                    @endphp
+                    <strong>ระยะเวลาการผ่อน:</strong> {{ $request->installment_period }} วัน (เหลือ {{ $remainingDays }} วัน)
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-light" style="width: {{ $timeProgress }}%;">
+                            {{ number_format($timeProgress, 2) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p><strong>📅 จำนวนวันที่เหลือ:</strong> {{ $remainingDays }} วัน</p>
+            <p><strong>💵 ยอดที่ต้องชำระรายวัน:</strong> {{ number_format($dailyPayment, 2) }} บาท</p>
+            <p><strong>📆 วันชำระครั้งถัดไป:</strong>
+                @php
+                    $nextPayment = $request->installmentPayments()
+                                    ->where('status', 'pending')
+                                    ->whereDate('payment_due_date', '>=', today())
+                                    ->orderBy('payment_due_date', 'asc')
+                                    ->first();
+                @endphp
+                @if($nextPayment)
+                    {{ \Carbon\Carbon::parse($nextPayment->payment_due_date)->format('d/m/Y') }}
+                @else
+                    ยังไม่กำหนด
+                @endif
+            </p>
+
+            {{-- ส่วนชำระเงินและอัปโหลดสลิปของคุณเดิม --}}
+            <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#bankInfo{{ $request->id }}" aria-expanded="false">
+                ข้อมูลธนาคาร
+            </button>
+
+            <div class="collapse mt-3" id="bankInfo{{ $request->id }}">
+                <div class="card card-body">
+                    @forelse($bankAccounts as $bank)
+                        <div class="bank-info my-2 d-flex align-items-center">
+                            <img src="{{ asset('storage/'.$bank->logo) }}" width="60" alt="{{ $bank->bank_name }}" class="me-3">
+                            <div>
+                                <strong>{{ $bank->bank_name }}</strong><br>
+                                ชื่อบัญชี: {{ $bank->account_name }}<br>
+                                เลขที่บัญชี: {{ $bank->account_number }}
+                            </div>
+                        </div>
+                    @empty
+                        <div class="alert alert-warning">⚠️ ไม่มีข้อมูลบัญชีธนาคาร</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <button class="btn btn-warning" type="button" data-bs-toggle="collapse"
+                data-bs-target="#uploadSlip{{ $request->id }}" aria-expanded="false">
+                อัพโหลดสลิป
+            </button>
+
+            <div class="collapse mt-3" id="uploadSlip{{ $request->id }}">
+                <div class="card card-body">
+                    <form id="payment-form-{{ $request->id }}" action="{{ route('payments.upload-proof', $request->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" id="remaining_amount_{{ $request->id }}" value="{{ $request->remaining_amount }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">จำนวนเงินที่โอน (บาท)</label>
+                            <input type="number" class="form-control" id="amount_paid_{{ $request->id }}" name="amount_paid" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">อัปโหลดสลิปธนาคาร</label>
+                            <input type="file" class="form-control" name="payment_proof" required>
+                        </div>
+                        <button class="btn btn-primary" type="submit">ส่งหลักฐานการชำระเงิน</button>
+                    </form>
+                </div>
+            </div>
+            <hr>
+
+            🌟 ราคาทองที่อนุมัติ: <strong>{{ number_format($request->approved_gold_price, 2) }} บาท</strong><br>
+            💳 ราคารวมทองคำ: <strong>{{ number_format($request->total_gold_price, 2) }} บาท</strong><br>
+            📌 ดอกเบี้ย ({{ $request->interest_rate }}%): <strong>{{ number_format($request->total_with_interest - $request->total_gold_price, 2) }} บาท</strong><br>
+            💰 เงินรวมดอกเบี้ย: <strong>{{ number_format($request->total_with_interest, 2) }} บาท</strong><br>
         </div>
-     @empty
-        <div class="alert alert-warning">⚠️ ไม่มีข้อมูลการผ่อนที่อนุมัติค่ะ</div>
+    </div>
+    @empty
+    <div class="alert alert-warning">⚠️ ไม่มีข้อมูลการผ่อนที่อนุมัติค่ะ</div>
     @endforelse
+
 
     {{-- ประวัติการชำระเงินของคุณเดิม --}}
     <div class="card shadow-sm mt-4">

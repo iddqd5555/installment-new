@@ -8,6 +8,7 @@ use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Http\Request;
+use App\Http\Controllers\BankAccountController;
 
 // หน้าแรก สำหรับผู้ใช้ที่ไม่ได้ล็อคอิน
 Route::get('/', function () {
@@ -68,3 +69,4 @@ Route::middleware(['auth'])->group(function () {
 
 // Authentication Routes
 require __DIR__.'/auth.php';
+require __DIR__.'/admin.php';

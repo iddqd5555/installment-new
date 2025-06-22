@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\InstallmentPayment;
-use App\Models\User; // ✅ อย่าลืม import User ด้วยนะคะ
-
+use App\Models\User;
+use App\Models\Admin;
 
 class InstallmentRequest extends Model
 {
@@ -15,8 +15,14 @@ class InstallmentRequest extends Model
     protected $fillable = [
         'user_id', 'product_name', 'gold_amount', 'approved_gold_price',
         'installment_period', 'interest_rate', 'status', 'total_paid',
-        'remaining_amount'
+        'remaining_amount', 'approved_by',
+        'total_gold_price', 'total_with_interest', 'daily_payment_amount', 'interest_amount' // ต้องมีครบทั้งหมดนี้
     ];
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(Admin::class, 'approved_by');
+    }
 
     public function payments()
     {
@@ -66,5 +72,4 @@ class InstallmentRequest extends Model
             'total_gold_price' => $totalGoldPrice,
         ];
     }
-
 }

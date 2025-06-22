@@ -40,15 +40,6 @@ class Admin extends Authenticatable
         return $this->role === self::ROLE_OAA;
     }
 
-    public static function canViewAny($user): bool {
-    return $user->hasRole(['admin', 'OAA']);
-    }
-    public static function canEdit($user, $record): bool {
-        return $user->hasRole(['admin', 'OAA']);
-    }
-    public static function canDelete($user, $record): bool {
-        return $user->isOAA();
-    }
     public function hasRole(array $roles): bool
     {
         return in_array($this->role, $roles);

@@ -60,7 +60,7 @@ select.form-control {
     </table>
     <form method="POST" action="{{ route('gold.request.store') }}" id="goldForm">
         @csrf
-        <input type="hidden" name="fullname" value="{{ auth()->user()->name }}">
+        <input type="hidden" name="fullname" value="{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}">
         <input type="hidden" name="phone" value="{{ auth()->user()->phone }}">
         <input type="hidden" name="id_card" value="{{ auth()->user()->id_card_number }}">
 
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalAmount = amount * multipliers[days];
         const dailyPayment = totalAmount / days;
 
-        document.getElementById('modalFullName').innerText = '{{ auth()->user()->name }}';
+        document.getElementById('modalFullName').innerText = '{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}';
         document.getElementById('modalIDCard').innerText = '{{ auth()->user()->id_card_number }}';
         document.getElementById('modalPhone').innerText = '{{ auth()->user()->phone }}';
         document.getElementById('modalGoldPrice').innerText = amount.toFixed(2);

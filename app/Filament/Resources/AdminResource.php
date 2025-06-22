@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AdminResource\Pages;
-use App\Filament\Resources\AdminResource\RelationManagers;
 use App\Models\Admin;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AdminResource extends Resource
 {
@@ -63,11 +63,24 @@ class AdminResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
+    public static function mutateFormDataBeforeCreate(array $data): array
     {
-        return [
-            //
-        ];
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        return $data;
+    }
+
+    public static function mutateFormDataBeforeSave(array $data): array
+    {
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+
+        return $data;
     }
 
     public static function getPages(): array
@@ -79,32 +92,25 @@ class AdminResource extends Resource
         ];
     }
 
-    // ✅ Logic การจำกัดสิทธิ์ (ชัดเจนที่สุด)
+    public static function canAccess(): bool
+    {
+        return in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
+    }
+
     public static function canCreate(): bool
     {
-        $admin = Auth::guard('admin')->user();
-        return in_array($admin->role, ['admin', 'OAA']);
+        return in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
     }
 
     public static function canEdit($record): bool
     {
         $admin = Auth::guard('admin')->user();
-
-        if ($record->role === 'OAA' && $admin->role !== 'OAA') {
-            return false; // Admin ไม่สามารถแก้ไข OAA ได้
-        }
-
-        return in_array($admin->role, ['admin', 'OAA']);
+        return ($record->role !== 'OAA' || $admin->role === 'OAA');
     }
 
     public static function canDelete($record): bool
     {
         $admin = Auth::guard('admin')->user();
-
-        if ($record->role === 'OAA' && $admin->role !== 'OAA') {
-            return false; // Admin ไม่สามารถลบ OAA ได้
-        }
-
-        return in_array($admin->role, ['admin', 'OAA']);
+        return ($record->role !== 'OAA' || $admin->role === 'OAA');
     }
 }

@@ -12,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
@@ -32,7 +33,11 @@ class UserResource extends Resource
             ->label('รหัสผ่าน')
             ->password()
             ->required(),
-            TextInput::make('email')->label('อีเมล')->email(), // ✅ เพิ่มช่องอีเมล
+            TextInput::make('email')
+            ->label('อีเมล')
+            ->email()
+            ->nullable(), // ✅ ระบุชัดเจนว่า email เป็น null ได้
+
             TextInput::make('id_card_number')->label('เลขบัตรประชาชน')->required(),
             Select::make('identity_verification_status')->label('สถานะการยืนยันตัวตน')->options([
                 'pending' => 'รอการตรวจสอบ',
@@ -123,5 +128,20 @@ class UserResource extends Resource
         }
 
         return $data;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (in_array($admin->role, ['admin', 'OAA'])) {
+            return parent::getEloquentQuery();
+        }
+
+        // staff จะเห็นเฉพาะ User ที่ตนเองอนุมัติคำขอผ่อนทอง
+        return parent::getEloquentQuery()
+            ->whereHas('installmentRequests', function ($query) use ($admin) {
+                $query->where('approved_by', $admin->id);
+            });
     }
 }
