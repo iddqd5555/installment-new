@@ -24,7 +24,7 @@ class StatsOverview extends BaseWidget
                     'user_count' => User::count(),
                     'installment_request_count' => InstallmentRequest::count(),
                     'pending_payment_count' => InstallmentPayment::where('status', 'pending')->count(),
-                    'total_income' => InstallmentPayment::sum('amount_paid'),
+                    'total_income' => InstallmentPayment::where('status', 'approved')->sum('amount_paid'),
                 ];
             }
 

@@ -60,9 +60,13 @@ class Login extends BaseLogin
             ]);
         }
 
-        session()->regenerate();
+        // ระบุ guard admin ชัดเจนที่สุดตอน regenerate session
+        request()->session()->regenerate();
 
-        return app(LoginResponse::class);
+        // ตั้งค่า guard เริ่มต้นเป็น admin (สำคัญมาก)
+        Auth::shouldUse('admin');
+
+        return redirect()->intended(route('custom.admin.dashboard'));
     }
 
     // ✅ เพิ่ม method นี้ชัดเจนที่สุด

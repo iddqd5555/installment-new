@@ -72,4 +72,12 @@ class InstallmentRequest extends Model
             'total_gold_price' => $totalGoldPrice,
         ];
     }
+
+    // ยอดคงเหลือจริง ณ เวลาปัจจุบัน
+    public function getRealRemainingAmountAttribute()
+    {
+        $paidAmount = $this->approvedPayments()->sum('amount_paid');
+        return $this->total_with_interest - $paidAmount;
+    }
+
 }

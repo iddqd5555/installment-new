@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->widgets([
-            StatsOverview::class, // ✅ ต้องเพิ่มกลับไป!
-        ]);
+                StatsOverview::class,
+            ]);
     }
 }

@@ -3,39 +3,52 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Models\InstallmentPayment;
+use App\Models\Payment;
+use App\Models\InstallmentRequest;
 
 class SCBController extends Controller
 {
     public function callback(Request $request)
     {
-        Log::info('SCB Payment Callback:', $request->all());
+        Log::info('SCB Callback:', $request->all());
 
-        $transactionId = $request->input('transactionId');
-        $paymentStatus = $request->input('status');
+        $transactionId = $request->input('transaction_id');
+        $status = $request->input('status');
         $amount = $request->input('amount');
+        $installmentRequestId = $request->input('installment_request_id');
 
-        if (!$transactionId || !$paymentStatus) {
-            return response()->json(['status' => 'error', 'message' => 'ข้อมูลไม่ครบ'], 400);
-        }
-
-        $payment = InstallmentPayment::where('transaction_id', $transactionId)->first();
-
-        if (!$payment) {
-            return response()->json(['status' => 'error', 'message' => 'ไม่พบรายการชำระเงิน'], 404);
-        }
-
-        if ($paymentStatus == 'success') {
-            $payment->update([
-                'status' => 'approved',
-                'amount_paid' => $amount,
-                'paid_at' => now(),
+        if ($status == 'success') {
+            Payment::create([
+                'installment_request_id' => $installmentRequestId,
+                'amount' => $amount,
+                'payment_method' => 'SCB API',
             ]);
-        } else {
-            $payment->update(['status' => 'failed']);
+
+            // Update InstallmentRequest
+            $installment = InstallmentRequest::find($installmentRequestId);
+            if ($installment) {
+                $installment->status = 'approved';
+                $installment->total_paid += $amount;
+                $installment->remaining_amount -= $amount;
+                $installment->save();
+            }
         }
 
-        return response()->json(['status' => 'success'], 200);
+        return response()->json(['status' => 'success']);
+    }
+
+    // ตัวอย่างฟังก์ชันเรียก SCB API (ถ้าในอนาคตคุณต้องเรียกใช้งานเพิ่ม)
+    private function callSCBApi()
+    {
+        $response = Http::withHeaders([
+            'API-Key' => env('SCB_API_KEY'),
+            'API-Secret' => env('SCB_API_SECRET'),
+        ])->post(env('SCB_CALLBACK_URL'), [
+            // parameters ที่คุณต้องการส่งไป SCB API
+        ]);
+
+        return $response->json();
     }
 }
