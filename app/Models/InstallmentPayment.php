@@ -10,8 +10,14 @@ class InstallmentPayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'installment_request_id', 'amount_paid', 'status', 'payment_status', 
-        'payment_proof', 'payment_due_date', 'fine'
+        'installment_request_id', 
+        'amount',           // ✅ เพิ่มฟิลด์นี้ชัดเจนที่สุด
+        'amount_paid', 
+        'status', 
+        'payment_status', 
+        'payment_proof', 
+        'payment_due_date', 
+        'fine'
     ];
 
     public function installmentRequest()

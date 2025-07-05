@@ -35,19 +35,24 @@
 
     <?php $__empty_1 = true; $__currentLoopData = $installmentRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $request): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
     <?php
-        $dailyPayment = $request->daily_payment_amount;
-        $daysPassed = \Carbon\Carbon::parse($request->start_date)->diffInDays(today()) + 1;
+        $dailyPayment = $request->daily_payment_amount ?? 0;
+        $daysPassed = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->diffInDays(today()) + 1 : 0;
         $totalShouldPay = $dailyPayment * $daysPassed;
         $totalPaid = $request->installmentPayments->where('status', 'approved')->sum('amount_paid') + $request->advance_payment;
         $dueToday = max($totalShouldPay - $totalPaid, 0);
 
-        $overdueDays = max(0, floor(($totalShouldPay - $totalPaid) / $dailyPayment));
+        if ($dailyPayment > 0) {
+            $overdueDays = max(0, floor(($totalShouldPay - $totalPaid) / $dailyPayment));
+        } else {
+            $overdueDays = 0; // ✅ ป้องกันการหารด้วย 0 ชัดเจน
+        }
+
         $penaltyAmount = $overdueDays * 100;
     ?>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-success text-white">
-            📌 ผ่อนทองจำนวน: <strong><?php echo e(number_format($request->gold_amount, 2)); ?> บาท</strong>
+            📌 ผ่อนทองจำนวน: <strong><?php echo e(number_format($request->gold_amount ?? 0, 2)); ?> บาท</strong>
         </div>
 
         <div class="card-body">
@@ -84,9 +89,16 @@
             <div class="mb-3">
                 <strong>ชำระแล้วทั้งหมด:</strong> <?php echo e(number_format($request->total_paid, 2)); ?> / <?php echo e(number_format($request->total_with_interest, 2)); ?> บาท
                 <div class="progress mt-2">
-                    <?php
-                        $paymentProgress = ($request->total_paid / $request->total_with_interest) * 100;
-                    ?>
+                    <?php if($request->total_with_interest > 0): ?>
+                        <?php
+                            $paymentProgress = ($request->total_paid / $request->total_with_interest) * 100;
+                        ?>
+                    <?php else: ?>
+                        <?php
+                            $paymentProgress = 0;
+                        ?>
+                    <?php endif; ?>
+
                     <div class="progress-bar bg-success" style="width: <?php echo e($paymentProgress); ?>%;">
                         <?php echo e(number_format($paymentProgress, 2)); ?>%
                     </div>
@@ -95,16 +107,25 @@
 
             
             <div class="mb-3">
-                <strong>ระยะเวลาการผ่อน:</strong> <?php echo e($daysPassed); ?> / <?php echo e($request->installment_period); ?> วัน
+                <strong>ระยะเวลาการผ่อน:</strong>
+                <?php echo e($daysPassed); ?> / <?php echo e($request->installment_period ?? 'N/A'); ?> วัน
                 <div class="progress mt-2">
-                    <?php
-                        $timeProgress = ($daysPassed / $request->installment_period) * 100;
-                    ?>
+                    <?php if(isset($request->installment_period) && $request->installment_period > 0): ?>
+                        <?php
+                            $timeProgress = min(100, ($daysPassed / $request->installment_period) * 100); 
+                        ?>
+                    <?php else: ?>
+                        <?php
+                            $timeProgress = 0; // ป้องกัน Division by zero ชัดเจนที่สุด
+                        ?>
+                    <?php endif; ?>
                     <div class="progress-bar bg-info" style="width: <?php echo e($timeProgress); ?>%;">
                         <?php echo e(number_format($timeProgress, 2)); ?>%
                     </div>
                 </div>
             </div>
+
+            
 
             <div class="mt-4">
                 <button class="btn btn-info" data-bs-toggle="collapse" data-bs-target="#bankInfo<?php echo e($request->id); ?>">🏦 ข้อมูลธนาคาร</button>
