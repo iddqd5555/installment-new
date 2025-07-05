@@ -2,14 +2,17 @@
 
 use App\Http\Controllers\InstallmentStaffController;
 use App\Http\Controllers\PaymentStaffController;
+use App\Http\Controllers\AdminAuthController;
 use Illuminate\Support\Facades\Route;
-use App\Filament\Admin\Pages\Auth\Login;
 
 Route::prefix('admin')->group(function () {
 
     Route::middleware('guest:admin')->group(function () {
-        Route::get('/login', fn () => redirect('/admin'))
-            ->name('custom.admin.auth.login');
+        Route::get('/login', [AdminAuthController::class, 'showLoginForm'])
+            ->name('filament.admin.auth.login');
+
+        Route::post('/login', [AdminAuthController::class, 'login'])
+            ->name('filament.admin.auth.attempt');
     });
 
     Route::middleware('auth:admin')->group(function () {

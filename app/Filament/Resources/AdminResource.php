@@ -91,26 +91,24 @@ class AdminResource extends Resource
             'edit' => Pages\EditAdmin::route('/{record}/edit'),
         ];
     }
-
     public static function canAccess(): bool
     {
-        return in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
+        return Auth::guard('admin')->check() && in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
     }
 
     public static function canCreate(): bool
     {
-        return in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
+        return Auth::guard('admin')->check() && in_array(Auth::guard('admin')->user()->role, ['admin', 'OAA']);
     }
 
     public static function canEdit($record): bool
     {
-        $admin = Auth::guard('admin')->user();
-        return ($record->role !== 'OAA' || $admin->role === 'OAA');
+        return Auth::guard('admin')->check() && ($record->role !== 'OAA' || Auth::guard('admin')->user()->role === 'OAA');
     }
 
     public static function canDelete($record): bool
     {
-        $admin = Auth::guard('admin')->user();
-        return ($record->role !== 'OAA' || $admin->role === 'OAA');
+        return Auth::guard('admin')->check() && ($record->role !== 'OAA' || Auth::guard('admin')->user()->role === 'OAA');
     }
+
 }

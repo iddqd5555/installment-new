@@ -159,20 +159,59 @@ class InstallmentRequestController extends Controller
             'payment_proof' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
+        $installment = InstallmentRequest::findOrFail($id);
+        $amountPaid = floatval($request->input('amount_paid'));
+
+        // อัปโหลดสลิปธนาคาร
         $paymentProof = $request->file('payment_proof');
         $filePath = $paymentProof->storeAs('payment_slips', Carbon::now()->format('YmdHis') . '_' . uniqid() . '.' . $paymentProof->extension(), 'public');
 
+        // ยอดที่ควรชำระสะสมถึงวันนี้
+        $daysPassed = Carbon::parse($installment->start_date)->diffInDays(today()) + 1;
+        $totalShouldPay = $installment->daily_payment_amount * $daysPassed;
+
+        // ยอดที่ชำระแล้วทั้งหมด (รวม advance payment ด้วย)
+        $totalPaid = $installment->installmentPayments()
+            ->where('status', 'approved')
+            ->sum('amount_paid') + $installment->advance_payment;
+
+        // ยอดรวมหลังจากบวกยอดที่ลูกค้าเพิ่งชำระเข้ามา
+        $newTotalPaid = $totalPaid + $amountPaid;
+
+        // ตรวจสอบว่ามีการชำระเกินหรือไม่
+        if ($newTotalPaid > $totalShouldPay) {
+            // ถ้าชำระเกินจริง ให้บันทึกยอดส่วนเกินเป็น advance_payment
+            $advanceAmount = $newTotalPaid - $totalShouldPay;
+            $actualPaidToday = $amountPaid - $advanceAmount;
+            $installment->advance_payment = $advanceAmount;
+        } else {
+            // ถ้าไม่เกินให้ล้าง advance payment
+            $installment->advance_payment = 0;
+            $actualPaidToday = $amountPaid;
+        }
+
+        // บันทึกรายการชำระเงิน
         InstallmentPayment::create([
-            'installment_request_id' => $id,
-            'amount' => InstallmentRequest::findOrFail($id)->total_with_interest,
-            'amount_paid' => $request->input('amount_paid'),
-            'status' => 'pending',
-            'payment_status' => 'pending',
+            'installment_request_id' => $installment->id,
+            'amount' => $installment->daily_payment_amount,
+            'amount_paid' => $actualPaidToday,
+            'status' => 'approved',
+            'payment_status' => 'paid',
+            'payment_due_date' => today(),
             'payment_proof' => $filePath,
+            'admin_notes' => 'ชำระเงินโดยลูกค้า'
         ]);
+
+        // อัปเดตยอดรวมใน installment_requests
+        $installment->total_paid += $actualPaidToday;
+        $installment->remaining_amount -= $actualPaidToday;
+
+        // บันทึกข้อมูลที่เปลี่ยนแปลงทั้งหมด
+        $installment->save();
 
         return redirect()->back()->with('success', 'อัปโหลดสลิปเรียบร้อยแล้ว รอการตรวจสอบจากแอดมิน');
     }
+
     public function goldapi()
     {
         $goldPrices = Cache::remember('gold_prices', now()->addMinutes(30), function () {

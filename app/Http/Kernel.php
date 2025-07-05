@@ -31,8 +31,8 @@ class Kernel extends HttpKernel
     ];
 
     protected $routeMiddleware = [
+        //'auth.admin' => \App\Http\Middleware\AdminAuthenticate::class,
         'guest.admin' => \App\Http\Middleware\RedirectIfAdminAuthenticated::class,
-        'auth.admin' => \App\Http\Middleware\AdminAuthenticate::class,
         'checkRole' => \App\Http\Middleware\CheckRole::class,
 
         // middleware อื่นๆ ที่ Laravel เตรียมไว้

@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers;
 
@@ -25,6 +25,9 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $data = $request->validate([
+            'first_name' => 'required|string|max:255', // เพิ่มให้รองรับการแก้ไขชื่อจริง
+            'last_name' => 'required|string|max:255',  // เพิ่มให้รองรับการแก้ไขนามสกุล
+            'phone' => 'required|string|max:20',       // เพิ่มให้รองรับเบอร์โทร
             'email' => 'nullable|email',
             'address' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
@@ -53,7 +56,7 @@ class ProfileController extends Controller
 
         $user->update($data);
 
-        return Redirect::route('profile.edit')->with('status', 'อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้วค่ะ');
+        return Redirect::route('profile.edit')->with('success', '✅ อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้วค่ะ');
     }
 
     /**
@@ -72,6 +75,6 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return Redirect::to('/')->with('success', '❌ ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว');
     }
 }

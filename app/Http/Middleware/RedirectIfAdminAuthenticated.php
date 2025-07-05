@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
-use Illuminate\Http\Request;
 use Closure;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class RedirectIfAuthenticated
+class RedirectIfAdminAuthenticated
 {
     public function handle(Request $request, Closure $next, ...$guards)
     {
@@ -14,11 +14,9 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // ถ้า guard เป็น admin ให้ไปที่ dashboard
                 if ($guard === 'admin') {
                     return redirect('/admin/dashboard');
                 }
-                // guard ปกติ (user)
                 return redirect('/dashboard');
             }
         }

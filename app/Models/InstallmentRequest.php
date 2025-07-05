@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\InstallmentPayment;
 use App\Models\User;
 use App\Models\Admin;
+use Carbon\Carbon;
 
 class InstallmentRequest extends Model
 {
@@ -15,8 +16,10 @@ class InstallmentRequest extends Model
     protected $fillable = [
         'user_id', 'product_name', 'gold_amount', 'approved_gold_price',
         'installment_period', 'interest_rate', 'status', 'total_paid',
-        'remaining_amount', 'approved_by',
-        'total_gold_price', 'total_with_interest', 'daily_payment_amount', 'interest_amount' // ต้องมีครบทั้งหมดนี้
+        'remaining_amount', 'approved_by', 'total_gold_price', 
+        'total_with_interest', 'daily_payment_amount', 'interest_amount', 
+        'daily_penalty', 'total_penalty', 'first_approved_date',
+        'advance_payment' // ✅ เพิ่มตรงนี้ชัดเจน
     ];
 
     public function approvedBy()
@@ -78,6 +81,43 @@ class InstallmentRequest extends Model
     {
         $paidAmount = $this->approvedPayments()->sum('amount_paid');
         return $this->total_with_interest - $paidAmount;
+    }
+
+    // คำนวณค่าปรับสะสม
+    public function calculatePenalty()
+    {
+        $penalty = 0;
+
+        if (!$this->first_approved_date) {
+            return 0;
+        }
+
+        $startDate = Carbon::parse($this->first_approved_date);
+        $today = Carbon::now()->startOfDay();
+        $daysCount = $startDate->diffInDays($today);
+
+        for ($i = 0; $i <= $daysCount; $i++) {
+            $date = $startDate->copy()->addDays($i);
+            $dailyPayment = $this->daily_payment_amount;
+
+            $paidAmount = $this->payments()
+                ->whereDate('payment_due_date', $date)
+                ->where('status', 'approved')
+                ->sum('amount_paid');
+
+            if ($paidAmount < $dailyPayment && $date->lt($today)) {
+                $penalty += $this->daily_penalty;
+            }
+        }
+
+        return $penalty;
+    }
+
+    // อัปเดตค่าปรับสะสมล่าสุด
+    public function updateTotalPenalty()
+    {
+        $this->total_penalty = $this->calculatePenalty();
+        $this->save();
     }
 
 }

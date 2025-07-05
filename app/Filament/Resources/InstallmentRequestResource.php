@@ -55,6 +55,17 @@ class InstallmentRequestResource extends Resource
 
                 TextColumn::make('penalty_amount')->label('ค่าปรับรายวัน'),
 
+                Tables\Columns\TextColumn::make('total_penalty')
+                    ->label('ค่าปรับสะสม')
+                    ->money('THB')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('first_approved_date')
+                    ->label('วันที่อนุมัติครั้งแรก')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+
                 TextColumn::make('status')
                     ->label('สถานะ')->badge()
                     ->colors([

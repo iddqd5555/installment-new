@@ -5,7 +5,9 @@ namespace App\Console;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Models\InstallmentRequest;
+use App\Models\InstallmentPayment;
 use App\Notifications\InstallmentDueReminderNotification;
+use App\Notifications\PenaltyNotification; // ✅ เพิ่มตรงนี้ชัดเจน
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -15,7 +17,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // ระบบแจ้งเตือนเดิม (ไม่แก้ไข)
+        // ✅ แจ้งเตือนก่อนครบกำหนดชำระ (ไม่ต้องแก้ไข)
         $schedule->call(function () {
             $reminderDate = Carbon::now()->addDays(3)->startOfDay();
 
@@ -32,7 +34,7 @@ class Kernel extends ConsoleKernel
             }
         })->daily();
 
-        // ✅ Scheduler ดึงราคาทองคำจาก goldtraders.or.th (API เดียวกับ Controller)
+        // ✅ ดึงราคาทองคำ (ไม่ต้องแก้ไข)
         $schedule->call(function () {
             try {
                 $response = Http::get('https://www.goldtraders.or.th/default.aspx?tabid=93&language=th-TH');
@@ -44,47 +46,58 @@ class Kernel extends ConsoleKernel
 
                 if ($buyPrice && $sellPrice) {
                     DB::table('daily_gold_prices')->updateOrInsert(
-                        ['date' => Carbon::now()->toDateString()],
-                        [
-                            'buy' => $buyPrice,
-                            'sell' => $sellPrice,
-                            'updated_at' => Carbon::now()
-                        ]
+                        ['date' => Carbon::today()->toDateString()],
+                        ['buy' => $buyPrice, 'sell' => $sellPrice, 'updated_at' => Carbon::now()]
                     );
-                    Log::info('ดึงข้อมูลราคาทองคำจาก goldtraders.or.th สำเร็จ');
+                    Log::info('ดึงข้อมูลราคาทองคำสำเร็จ');
                 } else {
-                    Log::error('ไม่พบข้อมูลราคาทองคำจาก goldtraders.or.th');
+                    Log::error('ดึงข้อมูลราคาทองคำล้มเหลว');
                 }
             } catch (\Exception $e) {
-                Log::error('ข้อผิดพลาดในการดึงข้อมูลราคาทองคำ: ' . $e->getMessage());
+                Log::error('ข้อผิดพลาดในการดึงราคาทองคำ: '.$e->getMessage());
             }
         })->dailyAt('09:00');
-    }
 
-    $schedule->call(function () {
-        $installments = InstallmentRequest::with('payments')
-            ->where('status', 'approved')
-            ->get();
+        // 🔥 Scheduler คำนวณค่าปรับอัตโนมัติและจัดการ advance payment
+        $schedule->call(function () {
+            $installments = InstallmentRequest::where('status', 'approved')->get();
 
-        foreach ($installments as $installment) {
-            $todayPayment = $installment->daily_payment_amount;
-            $paidToday = $installment->payments()
-                            ->whereDate('payment_due_date', now()->toDateString())
-                            ->where('status', 'approved')
-                            ->sum('amount_paid');
+            foreach ($installments as $installment) {
+                $dailyPayment = $installment->daily_payment_amount;
+                $daysPassed = Carbon::parse($installment->start_date)->diffInDays(today()) + 1;
+                $totalShouldPay = $dailyPayment * $daysPassed;
 
-            if ($paidToday < $todayPayment) {
-                $penaltyAmount = ($todayPayment - $paidToday) * ($installment->penalty_rate / 100);
-                InstallmentPayment::create([
-                    'installment_request_id' => $installment->id,
-                    'amount_paid' => 0,
-                    'status' => 'penalty',
-                    'payment_due_date' => now(),
-                    'penalty_amount' => $penaltyAmount,
-                ]);
+                $totalPaid = $installment->payments()
+                    ->where('status', 'approved')
+                    ->sum('amount_paid') + $installment->advance_payment;
+
+                if ($totalPaid < $totalShouldPay) {
+                    // สร้างรายการค่าปรับชัดเจน
+                    InstallmentPayment::create([
+                        'installment_request_id' => $installment->id,
+                        'amount' => 100,
+                        'amount_paid' => 0,
+                        'status' => 'penalty',
+                        'payment_status' => 'pending',
+                        'payment_due_date' => today(),
+                        'admin_notes' => 'ค่าปรับอัตโนมัติ (ชำระไม่ครบยอดสะสม)',
+                    ]);
+
+                    // ✅ เพิ่ม notification แจ้งเตือน penalty ให้ผู้ใช้งานทันที
+                    $installment->user->notify(new PenaltyNotification(100));
+                }
+
+                if ($totalPaid > $totalShouldPay) {
+                    $installment->advance_payment = $totalPaid - $totalShouldPay;
+                } else {
+                    $installment->advance_payment = 0;
+                }
+
+                $installment->updateTotalPenalty();
+                $installment->save();
             }
-        }
-    })->dailyAt('23:59');
+        })->dailyAt('23:59');
+    }
 
     protected function commands(): void
     {

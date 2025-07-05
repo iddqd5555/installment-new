@@ -13,6 +13,8 @@ use App\Filament\Resources\PaymentResource;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\StatsOverview;
 use App\Filament\Resources\ApprovedInstallmentRequestResource;
+use App\Filament\Resources\InstallmentPaymentResource;
+use App\Filament\Widgets\FinancialReportWidget;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -24,7 +26,6 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('admin')
             ->middleware(['web'])
             ->authMiddleware(['auth:admin'])
-            ->login(\App\Filament\Admin\Pages\Auth\Login::class)
             ->brandName('WISDOM GOLD BACKEND')
             ->favicon(asset('images/favicon.ico'))
             ->resources([
@@ -34,12 +35,14 @@ class AdminPanelProvider extends PanelProvider
                 InstallmentRequestResource::class,
                 PaymentResource::class,
                 ApprovedInstallmentRequestResource::class,
+                InstallmentPaymentResource::class, // 👈 เพิ่มบรรทัดนี้ชัดเจน
             ])
             ->pages([
                 Dashboard::class,
             ])
             ->widgets([
                 StatsOverview::class,
+                FinancialReportWidget::class,
             ]);
     }
 }

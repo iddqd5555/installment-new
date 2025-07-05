@@ -4,23 +4,17 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class Admin extends Authenticatable
+class Admin extends Authenticatable implements FilamentUser
 {
     use Notifiable;
 
-    protected $fillable = [
-        'prefix',
-        'username',
-        'password',
-        'role',
-    ];
+    protected $fillable = ['prefix', 'username', 'password', 'role'];
 
-    protected $hidden = [
-        'password', 'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
-    // Roles ชัดเจน 3 ระดับ
     const ROLE_STAFF = 'staff';
     const ROLE_ADMIN = 'admin';
     const ROLE_OAA = 'OAA';
@@ -45,9 +39,14 @@ class Admin extends Authenticatable
         return in_array($this->role, $roles);
     }
 
-    // ชื่อที่แสดงคือ username
     public function getNameAttribute(): string
     {
         return $this->username;
+    }
+
+    // ✅ ปรับใหม่ชัดเจนที่สุด ให้ Filament ตรวจสอบ null ให้ถูกต้อง
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return auth('admin')->check();
     }
 }
