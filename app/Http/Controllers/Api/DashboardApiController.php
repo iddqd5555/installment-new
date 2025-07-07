@@ -12,44 +12,79 @@ class DashboardApiController extends Controller
     public function dashboardData(Request $request)
     {
         $user = $request->user();
-        $installment = InstallmentRequest::with('installmentPayments')
+
+        $installment = InstallmentRequest::with(['installmentPayments'])
             ->where('user_id', $user->id)
             ->where('status', 'approved')
-            ->orderBy('id', 'desc')
+            ->latest('first_approved_date')
             ->first();
 
-        if (!$installment || (!$installment->first_approved_date && !$installment->start_date)) {
-            return response()->json([]);
+        if (!$installment) {
+            return response()->json([
+                'gold_amount' => '0.00',
+                'total_paid' => '0.00',
+                'total_installment_amount' => '0.00',
+                'due_today' => '0.00',
+                'advance_payment' => '0.00',
+                'total_penalty' => '0.00',
+                'next_payment_date' => '-',
+                'days_passed' => 0,
+                'installment_period' => 0,
+                'payment_history' => [],
+            ]);
         }
 
-        $approvedDate = $installment->first_approved_date ?: $installment->start_date;
-        $firstApprovedDate = Carbon::parse($approvedDate);
-        $daysPassed = $firstApprovedDate->isFuture() ? 0 : Carbon::today()->diffInDays($firstApprovedDate);
+        $today = Carbon::today()->format('Y-m-d');
+        $firstApprovedDate = $installment->first_approved_date ?? $installment->start_date;
 
-        // 1. คำนวณค่าปรับอัตโนมัติ
-        $dailyPenalty = $installment->daily_penalty ?? 100; // ใช้ default 100 ถ้าไม่ได้เซ็ต
-        $totalPenalty = 0;
-        $pendingPayments = $installment->installmentPayments()->where('status', 'pending')->get();
-        foreach ($pendingPayments as $payment) {
-            $diff = Carbon::parse($payment->payment_due_date)->diffInDays(Carbon::today(), false);
-            if ($diff > 0) {
-                $totalPenalty += $dailyPenalty * $diff;
-            }
-        }
+        // 1. ยอดที่ต้องชำระ "วันนี้" (payment_due_date = วันนี้, เอาทั้งหมด)
+        $dueToday = $installment->installmentPayments
+            ->where('payment_due_date', $today)
+            ->sum('amount');
 
-        // 2. ยอดอื่นๆ
-        $totalPaid = $installment->installmentPayments()->sum('amount_paid');
-        $dueToday = $installment->daily_payment_amount;
+        // ถ้าไม่มีงวดวันนี้เลย ให้ return 0.00
+        $dueToday = $dueToday ?: 0.00;
+
+        // 2. ยอดที่ชำระไปแล้ว
+        $totalPaid = $installment->installmentPayments
+            ->where('status', 'approved')
+            ->sum('amount_paid');
+
+        // 3. ค่าปรับ
+        $penaltyPerDay = $installment->daily_penalty ?? 0;
+        $overdue = $installment->installmentPayments
+            ->where('status', 'pending')
+            ->where('payment_due_date', '<', $today)
+            ->count();
+        $totalPenalty = $overdue * $penaltyPerDay;
+
+        // 4. advance_payment
         $advancePayment = $installment->advance_payment ?? 0;
 
-        $latestPayment = $installment->installmentPayments()
-            ->where('status', 'approved')
-            ->latest('payment_due_date')
-            ->first();
+        // 5. ประวัติการชำระเงิน (เอาทุก status เรียงล่าสุด 20 งวด)
+        $paymentHistory = $installment->installmentPayments
+            ->sortByDesc('payment_due_date')
+            ->take(20)
+            ->map(function ($p) {
+                return [
+                    'amount' => (float) $p->amount,
+                    'amount_paid' => (float) $p->amount_paid,
+                    'status' => $p->status,
+                    'payment_due_date' => $p->payment_due_date,
+                ];
+            })->values();
 
-        $nextPayment = $latestPayment
-            ? Carbon::parse($latestPayment->payment_due_date)->addDay()->format('Y-m-d H:i:s')
-            : Carbon::tomorrow()->setHour(9)->format('Y-m-d H:i:s');
+        // 6. ระยะเวลาการผ่อน
+        $daysPassed = $firstApprovedDate ? Carbon::parse($firstApprovedDate)->diffInDays(Carbon::today()) : 0;
+        $installmentPeriod = $installment->installment_period ?? 0;
+
+        // 7. วันชำระครั้งถัดไป (pending ที่ date >= today)
+        $nextPayment = $installment->installmentPayments
+            ->where('status', 'pending')
+            ->where('payment_due_date', '>=', $today)
+            ->sortBy('payment_due_date')
+            ->first();
+        $nextPaymentDate = $nextPayment ? $nextPayment->payment_due_date : '-';
 
         return response()->json([
             'gold_amount' => number_format($installment->gold_amount, 2),
@@ -57,20 +92,11 @@ class DashboardApiController extends Controller
             'total_installment_amount' => number_format($installment->total_with_interest, 2),
             'due_today' => number_format($dueToday, 2),
             'advance_payment' => number_format($advancePayment, 2),
-            'total_penalty' => number_format($totalPenalty, 2), // <== ส่งค่าปรับที่คำนวณสด
-            'next_payment_date' => $nextPayment,
+            'total_penalty' => number_format($totalPenalty, 2),
+            'next_payment_date' => $nextPaymentDate,
             'days_passed' => $daysPassed,
-            'installment_period' => $installment->installment_period,
+            'installment_period' => $installmentPeriod,
+            'payment_history' => $paymentHistory,
         ]);
     }
-
-    public function paymentHistory(Request $request)
-    {
-        $user = $request->user();
-        $contract = InstallmentRequest::where('user_id', $user->id)->where('status', 'approved')->latest()->first();
-        if (!$contract) return response()->json([]);
-        $payments = $contract->installmentPayments()->orderBy('payment_due_date', 'desc')->get();
-        return response()->json($payments);
-    }
-
 }
