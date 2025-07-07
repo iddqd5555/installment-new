@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Filament\Resources\DailyReportResource\Widgets;
 
@@ -6,6 +6,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\InstallmentPayment;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DailyReportOverview extends BaseWidget
 {
@@ -17,11 +18,19 @@ class DailyReportOverview extends BaseWidget
         $dateFrom = Carbon::parse($dateFrom)->startOfDay();
         $dateUntil = Carbon::parse($dateUntil)->endOfDay();
 
-        $payments = InstallmentPayment::with('installmentRequest')
-            ->whereBetween('payment_due_date', [$dateFrom, $dateUntil])
-            ->get();
+        $admin = Auth::guard('admin')->user();
 
-        // ✅ ถูกต้อง: ใช้ amount ของ payment ในช่วงวัน
+        $payments = InstallmentPayment::with('installmentRequest')
+            ->whereBetween('payment_due_date', [$dateFrom, $dateUntil]);
+
+        // 🚩 Role-based filter (staff เห็นเฉพาะลูกค้าที่ตัวเองดูแล, OAA/admin เห็นทุกคน)
+        if (!in_array($admin->role, ['admin', 'OAA'])) {
+            $payments = $payments->whereHas('installmentRequest', function($q) use ($admin) {
+                $q->where('responsible_staff', $admin->id);
+            });
+        }
+        $payments = $payments->get();
+
         $totalDue = $payments->sum('amount');
         $totalPaid = $payments->sum('amount_paid');
         $totalRemaining = $totalDue - $totalPaid;
@@ -32,5 +41,4 @@ class DailyReportOverview extends BaseWidget
             Stat::make('ยอดคงเหลือ', number_format($totalRemaining, 2).' บาท'),
         ];
     }
-
 }

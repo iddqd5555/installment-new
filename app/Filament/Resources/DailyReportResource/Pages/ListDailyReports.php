@@ -6,7 +6,8 @@ use App\Filament\Resources\DailyReportResource;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
-use App\Models\InstallmentPayment; // ✅ เพิ่มตรงนี้
+use App\Models\InstallmentPayment;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -45,13 +46,20 @@ class ListDailyReports extends ListRecords
                     // ดึงจาก session ตามวันที่เลือกไว้
                     $dateFrom = session('daily_reports.date_from', Carbon::today()->toDateString());
                     $dateUntil = session('daily_reports.date_until', Carbon::today()->toDateString());
+                    $admin = Auth::guard('admin')->user();
 
                     $records = InstallmentPayment::with('installmentRequest')
                         ->whereBetween('payment_due_date', [
                             Carbon::parse($dateFrom)->startOfDay(),
                             Carbon::parse($dateUntil)->endOfDay()
-                        ])
-                        ->get();
+                        ]);
+                    // 🚩 Role-based filter: staff เห็นเฉพาะลูกค้าตัวเอง, admin/OAA เห็นทุกคน
+                    if (!in_array($admin->role, ['admin', 'OAA'])) {
+                        $records = $records->whereHas('installmentRequest', function($q) use ($admin) {
+                            $q->where('responsible_staff', $admin->id);
+                        });
+                    }
+                    $records = $records->get();
 
                     $spreadsheet = new Spreadsheet();
                     $sheet = $spreadsheet->getActiveSheet();
@@ -81,22 +89,24 @@ class ListDailyReports extends ListRecords
                             number_format($record->installmentRequest->gold_amount ?? 0, 2),
                             // รวมราคาทอง
                             number_format(
-                            ($record->installmentRequest->approved_gold_price ?? 0) * ($record->installmentRequest->gold_amount ?? 0), 2
+                                ($record->installmentRequest->approved_gold_price ?? 0)
+                                * ($record->installmentRequest->gold_amount ?? 0), 2
                             ),
                             number_format($record->amount_paid ?? 0, 2),
                             // ยอดคงเหลือ (ทอง)
                             number_format(
-                            max(0, ($record->installmentRequest->gold_amount ?? 0)
-                                - (($record->installmentRequest->total_paid ?? 0) / max(1, ($record->installmentRequest->approved_gold_price ?? 1)))
-                            ), 2
+                                max(0, ($record->installmentRequest->gold_amount ?? 0)
+                                    - (($record->installmentRequest->total_paid ?? 0)
+                                    / max(1, ($record->installmentRequest->approved_gold_price ?? 1)))
+                                ), 2
                             ),
                             // ยอดคงเหลือ (บาท)
                             number_format(
-                            max(0,
-                                (($record->installmentRequest->approved_gold_price ?? 0)
-                                * ($record->installmentRequest->gold_amount ?? 0))
-                                - ($record->installmentRequest->total_paid ?? 0)
-                            ), 2
+                                max(0,
+                                    (($record->installmentRequest->approved_gold_price ?? 0)
+                                        * ($record->installmentRequest->gold_amount ?? 0))
+                                    - ($record->installmentRequest->total_paid ?? 0)
+                                ), 2
                             ),
                             $record->installmentRequest->responsible_staff ?? '-',
                             $record->status ?? '-'

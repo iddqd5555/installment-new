@@ -10,6 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DailyReportResource extends Resource
 {
@@ -49,16 +50,13 @@ class DailyReportResource extends Resource
                     )
                 ),
             TextColumn::make('amount_paid')->label('ยอดที่ชำระแล้ว (บาท)')->money('THB'),
-            // ยอดคงเหลือ (บาททอง)
             TextColumn::make('installmentRequest.remaining_amount')
                 ->label('ยอดคงเหลือ (บาททอง)')
                 ->formatStateUsing(fn($record) => number_format(
-                    // (ทองทั้งหมด) - (ยอดที่จ่ายแล้ว/ราคาทอง) 
                     max(0, ($record->installmentRequest->gold_amount ?? 0)
                         - (($record->installmentRequest->total_paid ?? 0) / max(1, ($record->installmentRequest->approved_gold_price ?? 1)))
                     ), 2
                 )),
-            // ยอดคงเหลือมูลค่า (บาท)
             TextColumn::make('installmentRequest.remaining_gold_value')
                 ->label('ยอดคงเหลือมูลค่า (บาท)')
                 ->money('THB')
@@ -88,16 +86,31 @@ class DailyReportResource extends Resource
                         ->when($data['date_from'], fn($q) => $q->whereDate('payment_due_date', '>=', $data['date_from']))
                         ->when($data['date_until'], fn($q) => $q->whereDate('payment_due_date', '<=', $data['date_until']));
                 }),
+            Tables\Filters\SelectFilter::make('staff')
+                ->label('พนักงานที่ดูแล')
+                ->options(fn() => \App\Models\Admin::pluck('username', 'id')->toArray())
+                ->searchable()
+                ->query(function (Builder $query, array $data) {
+                    if (!empty($data['value'])) {
+                        $query->whereHas('installmentRequest', fn($q) => $q->where('responsible_staff', $data['value']));
+                    }
+                }),
         ])
         ->modifyQueryUsing(function (Builder $query) {
-            // ดึง filter จาก session มาใช้งาน
             $dateFrom = session('daily_reports.date_from', Carbon::today()->toDateString());
             $dateUntil = session('daily_reports.date_until', Carbon::today()->toDateString());
+            $admin = Auth::guard('admin')->user();
 
-            return $query->whereBetween('payment_due_date', [
+            $query->whereBetween('payment_due_date', [
                 Carbon::parse($dateFrom)->startOfDay(),
                 Carbon::parse($dateUntil)->endOfDay()
             ]);
+
+            if (!in_array($admin->role, ['admin', 'OAA'])) {
+                $query->whereHas('installmentRequest', function($q) use ($admin) {
+                    $q->where('responsible_staff', $admin->id);
+                });
+            }
         });
     }
 
