@@ -1,80 +1,59 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    public function show(Request $request)
     {
-        return view('profile', ['user' => $request->user()]);
+        $user = $request->user();
+        return response()->json($user);
     }
 
-    /**
-     * Update the user's profile information.
-     */
     public function update(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user();
+        $data = $request->all();
 
-        $data = $request->validate([
-            'first_name' => 'required|string|max:255', // เพิ่มให้รองรับการแก้ไขชื่อจริง
-            'last_name' => 'required|string|max:255',  // เพิ่มให้รองรับการแก้ไขนามสกุล
-            'phone' => 'required|string|max:20',       // เพิ่มให้รองรับเบอร์โทร
-            'email' => 'nullable|email',
+        $validator = Validator::make($data, [
+            'first_name' => 'required',
+            'last_name' => 'required',
+            'phone' => 'required',
+            'email' => 'required|email',
             'address' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string',
-            'salary' => 'nullable|numeric',
-            'workplace' => 'nullable|string',
-            'bank_name' => 'nullable|string',
-            'bank_account_number' => 'nullable|string',
-            'bank_account_name' => 'nullable|string',
-            'id_card_image' => 'nullable|image|max:2048',
-            'slip_salary_image' => 'nullable|image|max:2048',
-            'additional_documents' => 'nullable|file|max:2048',
+            // เพิ่ม validation field อื่นๆได้ตาม DB
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Update user profile fields
+        $user->first_name = $data['first_name'];
+        $user->last_name = $data['last_name'];
+        $user->phone = $data['phone'];
+        $user->email = $data['email'];
+        $user->address = $data['address'] ?? null;
+        $user->date_of_birth = $data['date_of_birth'] ?? null;
+        $user->gender = $data['gender'] ?? null;
+        // เพิ่มฟิลด์อื่นๆ (workplace, salary, bank_xxx)
+        // ....
+
+        // อัปโหลดไฟล์
         if ($request->hasFile('id_card_image')) {
-            $data['id_card_image'] = $request->file('id_card_image')->store('id_cards', 'public');
+            $filename = 'idcard_' . $user->id . '_' . time() . '.' . $request->file('id_card_image')->getClientOriginalExtension();
+            $path = $request->file('id_card_image')->storeAs('uploads', $filename, 'public');
+            $user->id_card_image = $filename;
         }
 
-        if ($request->hasFile('slip_salary_image')) {
-            $data['slip_salary_image'] = $request->file('slip_salary_image')->store('salary_slips', 'public');
-        }
+        $user->save();
 
-        if ($request->hasFile('additional_documents')) {
-            $data['additional_documents'] = $request->file('additional_documents')->store('documents', 'public');
-        }
-
-        $user->update($data);
-
-        return Redirect::route('profile.edit')->with('success', '✅ อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้วค่ะ');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request)
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-        Auth::logout();
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/')->with('success', '❌ ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว');
+        return response()->json(['message' => 'Profile updated', 'user' => $user]);
     }
 }

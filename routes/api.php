@@ -26,3 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payments', [DashboardApiController::class, 'paymentHistory']); // <== เพิ่มบรรทัดนี้!
 });
 
+Route::middleware(['auth:sanctum'])->group(function() {
+    Route::get('/user/profile', [ProfileController::class, 'show']);
+    Route::post('/user/profile/update', [ProfileController::class, 'update']);
+});
+
+
