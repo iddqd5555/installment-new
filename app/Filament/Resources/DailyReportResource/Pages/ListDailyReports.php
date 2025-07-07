@@ -43,7 +43,6 @@ class ListDailyReports extends ListRecords
                 ->icon('heroicon-o-document-arrow-down')
                 ->action(function () {
 
-                    // ดึงจาก session ตามวันที่เลือกไว้
                     $dateFrom = session('daily_reports.date_from', Carbon::today()->toDateString());
                     $dateUntil = session('daily_reports.date_until', Carbon::today()->toDateString());
                     $admin = Auth::guard('admin')->user();

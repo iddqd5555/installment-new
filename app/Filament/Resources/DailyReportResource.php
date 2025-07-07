@@ -90,9 +90,9 @@ class DailyReportResource extends Resource
                 ->label('พนักงานที่ดูแล')
                 ->options(fn() => \App\Models\Admin::pluck('username', 'id')->toArray())
                 ->searchable()
-                ->query(function (Builder $query, array $data) {
-                    if (!empty($data['value'])) {
-                        $query->whereHas('installmentRequest', fn($q) => $q->where('responsible_staff', $data['value']));
+                ->query(function (Builder $query, $state) {
+                    if (!empty($state)) {
+                        $query->whereHas('installmentRequest', fn($q) => $q->where('responsible_staff', $state));
                     }
                 }),
         ])
@@ -106,6 +106,7 @@ class DailyReportResource extends Resource
                 Carbon::parse($dateUntil)->endOfDay()
             ]);
 
+            // 🚩 Role-based filter
             if (!in_array($admin->role, ['admin', 'OAA'])) {
                 $query->whereHas('installmentRequest', function($q) use ($admin) {
                     $q->where('responsible_staff', $admin->id);
