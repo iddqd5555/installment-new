@@ -24,17 +24,20 @@ class DashboardApiController extends Controller
         }
 
         $firstApprovedDate = $installment->first_approved_date ?? $installment->start_date;
-        $today = Carbon::today()->format('Y-m-d');
+        $today = Carbon::today();
 
         return response()->json([
             'gold_amount' => number_format($installment->gold_amount, 2),
             'total_paid' => number_format($installment->total_paid, 2),
             'total_installment_amount' => number_format($installment->total_with_interest, 2),
-            'due_today' => number_format($installment->installmentPayments->where('payment_due_date', $today)->sum('amount'), 2),
+            'due_today' => number_format(
+                $installment->installmentPayments
+                    ->filter(fn($p) => \Carbon\Carbon::parse($p->payment_due_date)->isSameDay($today))
+                    ->sum('amount'), 2),
             'advance_payment' => number_format($installment->advance_payment, 2),
             'total_penalty' => number_format($installment->total_penalty, 2),
             'next_payment_date' => $installment->next_payment_date ?: '-',
-            'days_passed' => $firstApprovedDate ? Carbon::parse($firstApprovedDate)->diffInDays(Carbon::today()) : 0,
+            'days_passed' => $firstApprovedDate ? Carbon::parse($firstApprovedDate)->diffInDays($today) : 0,
             'installment_period' => $installment->installment_period ?? 0,
             'payment_history' => $installment->payment_history->map(function ($p) {
                 return [

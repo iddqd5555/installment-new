@@ -34,8 +34,11 @@
 
     @php
         $installment = $installmentRequests->first();
-        $today = \Carbon\Carbon::today()->format('Y-m-d');
-        $dueToday = $installment->installmentPayments->where('payment_due_date', $today)->sum('amount') ?: 0;
+        $today = \Carbon\Carbon::today();
+
+        $dueToday = $installment->installmentPayments
+            ->filter(fn($p) => \Carbon\Carbon::parse($p->payment_due_date)->isSameDay($today))
+            ->sum('amount') ?: 0;
     @endphp
 
     <div class="card shadow-sm mb-4">
