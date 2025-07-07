@@ -85,7 +85,8 @@
 
             {{-- หลอดความคืบหน้าจำนวนเงิน --}}
             <div class="mb-3">
-                <strong>ชำระแล้วทั้งหมด:</strong> {{ number_format($request->total_paid, 2) }} / {{ number_format($request->total_with_interest, 2) }} บาท
+                <strong>ชำระแล้วทั้งหมด:</strong> {{ number_format($request->total_paid, 2) }} / {{ number_format(DB::table('installment_requests')->where('id', $request->id)->value('total_installment_amount'), 2) }} บาท
+
                 <div class="progress mt-2">
                     @if($request->total_with_interest > 0)
                         @php
@@ -179,7 +180,7 @@
                 <tbody>
                     @foreach($payments as $payment)
                     <tr>
-                        <td>{{ $payment->created_at->format('d/m/Y H:i') }}</td>
+                        <td>{{ $payment->payment_due_date ? \Carbon\Carbon::parse($payment->payment_due_date)->format('d/m/Y H:i') : '-' }}</td>
                         <td>{{ number_format($payment->amount_paid, 2) }} บาท</td>
                         <td>
                             @if($payment->status == 'approved')

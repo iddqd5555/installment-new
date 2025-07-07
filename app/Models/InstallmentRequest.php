@@ -8,6 +8,7 @@ use App\Models\InstallmentPayment;
 use App\Models\User;
 use App\Models\Admin;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class InstallmentRequest extends Model
 {
@@ -19,7 +20,10 @@ class InstallmentRequest extends Model
         'remaining_amount', 'approved_by', 'total_gold_price', 
         'total_with_interest', 'daily_payment_amount', 'interest_amount', 
         'daily_penalty', 'total_penalty', 'first_approved_date',
-        'advance_payment' // ✅ เพิ่มตรงนี้ชัดเจน
+        'advance_payment',
+        'contract_number',  // ✅ เพิ่มตรงนี้
+        'payment_number',   // ✅ เพิ่มตรงนี้
+        'responsible_staff' // ✅ เพิ่มตรงนี้
     ];
 
     public function approvedBy()
@@ -118,6 +122,18 @@ class InstallmentRequest extends Model
     {
         $this->total_penalty = $this->calculatePenalty();
         $this->save();
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($request) {
+            $lastId = self::max('id') ?? 0;
+
+            $request->contract_number = 'A' . str_pad((68000 + $lastId + 1), 5, '0', STR_PAD_LEFT);
+            $request->payment_number = 'INV' . now()->format('ym') . str_pad(($lastId + 1), 4, '0', STR_PAD_LEFT);
+        });
     }
 
 }

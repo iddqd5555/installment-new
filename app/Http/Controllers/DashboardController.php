@@ -9,9 +9,18 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // ดึงข้อมูลสินค้าทั้งหมดที่อนุมัติแล้วมาแสดง
-        $products = InstallmentRequest::where('status', 'approved')->get();
+        $installmentRequests = InstallmentRequest::with(['installmentPayments'])->where('status', 'approved')->get();
 
-        return view('dashboard', compact('products'));
+        // บังคับให้โหลดข้อมูลล่าสุดจากฐานข้อมูล
+        $installmentRequests->each(function ($request) {
+            $request->refresh();
+            $request->load('installmentPayments');
+        });
+
+        $bankAccounts = BankAccount::all();
+        $payments = InstallmentPayment::latest()->take(10)->get();
+
+        return view('dashboard', compact('installmentRequests', 'bankAccounts', 'payments'));
     }
+
 }

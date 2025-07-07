@@ -16,7 +16,7 @@ class FinancialReportWidget extends BaseWidget
         return $table
             ->query(
                 InstallmentRequest::query()
-                    ->with(['user'])
+                    ->with(['user', 'installmentPayments'])
                     ->where('status', 'approved')
             )
             ->columns([
@@ -28,27 +28,51 @@ class FinancialReportWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('total_paid')
                     ->label('ยอดชำระแล้ว (บาท)')
                     ->money('THB')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn($record) => number_format(
+                        $record->installmentPayments()->where('status', 'approved')->sum('amount_paid'), 2
+                    )),
 
                 Tables\Columns\TextColumn::make('remaining_amount')
                     ->label('ยอดคงเหลือ (บาท)')
                     ->money('THB')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn($record) =>
+                        number_format(
+                            max(0, ($record->total_with_interest ?? 0)
+                                - $record->installmentPayments()->where('status', 'approved')->sum('amount_paid')
+                            ), 2
+                        )
+                    ),
 
                 Tables\Columns\TextColumn::make('advance_payment')
                     ->label('ยอดชำระล่วงหน้า (บาท)')
                     ->money('THB')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn($record) =>
+                        number_format($record->advance_payment ?? 0, 2)
+                    ),
 
                 Tables\Columns\TextColumn::make('total_penalty')
                     ->label('ค่าปรับสะสม (บาท)')
                     ->money('THB')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn($record) =>
+                        number_format($record->total_penalty ?? 0, 2)
+                    ),
 
                 Tables\Columns\TextColumn::make('next_payment_date')
                     ->label('วันชำระครั้งถัดไป')
                     ->date('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn($record) =>
+                        optional(
+                            $record->installmentPayments()
+                                ->where('status', 'pending')
+                                ->orderBy('payment_due_date')
+                                ->first()
+                        )?->payment_due_date
+                    ),
             ])
             ->filters([
                 Tables\Filters\Filter::make('has_penalty')
@@ -63,4 +87,5 @@ class FinancialReportWidget extends BaseWidget
             ->bulkActions([])
             ->defaultSort('total_penalty', 'desc');
     }
+
 }

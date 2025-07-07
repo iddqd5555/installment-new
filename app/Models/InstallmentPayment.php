@@ -22,6 +22,6 @@ class InstallmentPayment extends Model
 
     public function installmentRequest()
     {
-        return $this->belongsTo(InstallmentRequest::class);
+        return $this->belongsTo(InstallmentRequest::class, 'installment_request_id');
     }
 }

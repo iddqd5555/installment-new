@@ -15,6 +15,8 @@ use App\Filament\Widgets\StatsOverview;
 use App\Filament\Resources\ApprovedInstallmentRequestResource;
 use App\Filament\Resources\InstallmentPaymentResource;
 use App\Filament\Widgets\FinancialReportWidget;
+use App\Filament\Resources\DailyReportResource;
+use App\Filament\Resources\DailyReportResource\Widgets\DailyReportOverview;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -36,6 +38,7 @@ class AdminPanelProvider extends PanelProvider
                 PaymentResource::class,
                 ApprovedInstallmentRequestResource::class,
                 InstallmentPaymentResource::class, // 👈 เพิ่มบรรทัดนี้ชัดเจน
+                DailyReportResource::class,
             ])
             ->pages([
                 Dashboard::class,
@@ -43,6 +46,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 StatsOverview::class,
                 FinancialReportWidget::class,
+                DailyReportOverview::class,
             ]);
     }
 }

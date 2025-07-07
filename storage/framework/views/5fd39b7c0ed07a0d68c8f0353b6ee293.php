@@ -87,7 +87,8 @@
 
             
             <div class="mb-3">
-                <strong>ชำระแล้วทั้งหมด:</strong> <?php echo e(number_format($request->total_paid, 2)); ?> / <?php echo e(number_format($request->total_with_interest, 2)); ?> บาท
+                <strong>ชำระแล้วทั้งหมด:</strong> <?php echo e(number_format($request->total_paid, 2)); ?> / <?php echo e(number_format(DB::table('installment_requests')->where('id', $request->id)->value('total_installment_amount'), 2)); ?> บาท
+
                 <div class="progress mt-2">
                     <?php if($request->total_with_interest > 0): ?>
                         <?php
@@ -182,7 +183,7 @@
                 <tbody>
                     <?php $__currentLoopData = $payments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $payment): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                        <td><?php echo e($payment->created_at->format('d/m/Y H:i')); ?></td>
+                        <td><?php echo e($payment->payment_due_date ? \Carbon\Carbon::parse($payment->payment_due_date)->format('d/m/Y H:i') : '-'); ?></td>
                         <td><?php echo e(number_format($payment->amount_paid, 2)); ?> บาท</td>
                         <td>
                             <?php if($payment->status == 'approved'): ?>

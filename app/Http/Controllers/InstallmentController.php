@@ -16,10 +16,38 @@ class InstallmentController extends Controller
         $user = Auth::user();
 
         $installments = InstallmentRequest::where('user_id', $user->id)
-            ->select('id', 'total_installment_amount', 'status', 'created_at')
+            ->with(['installmentPayments' => function($q) {
+                $q->orderBy('payment_due_date', 'asc');
+            }])
             ->get();
 
-        return response()->json($installments);
+        // map ข้อมูลที่จำเป็นทั้งหมด
+        $result = $installments->map(function($item) {
+            return [
+                'id' => $item->id,
+                'contract_number' => $item->contract_number,
+                'payment_number' => $item->payment_number,
+                'gold_amount' => $item->gold_amount,
+                'total_installment_amount' => $item->total_with_interest,
+                'daily_payment_amount' => $item->daily_payment_amount,
+                'installment_period' => $item->installment_period,
+                'status' => $item->status,
+                'start_date' => $item->start_date,
+                'responsible_staff' => $item->responsible_staff,
+                'payments' => $item->installmentPayments->map(function($p) {
+                    return [
+                        'id' => $p->id,
+                        'amount' => $p->amount,
+                        'amount_paid' => $p->amount_paid,
+                        'status' => $p->status,
+                        'payment_due_date' => $p->payment_due_date,
+                        'payment_status' => $p->payment_status,
+                    ];
+                }),
+            ];
+        });
+
+        return response()->json($result);
     }
 
     // แสดงรายละเอียดสัญญาสินเชื่อ (ละเอียดครบทุกข้อมูล)
@@ -116,5 +144,38 @@ class InstallmentController extends Controller
         $installment->save();
 
         return response()->json(['message' => 'อัปโหลดเอกสารและตำแหน่งสำเร็จแล้ว'], 200);
+    }
+
+    public function currentDashboard()
+    {
+        $user = Auth::user();
+
+        $installment = InstallmentRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->latest()
+            ->firstOrFail();
+
+        // คำนวณยอดที่ต้องชำระวันนี้
+        $daysPassed = now()->diffInDays($installment->start_date) + 1;
+        $totalShouldPay = $installment->daily_payment_amount * $daysPassed;
+        $dueToday = max($totalShouldPay - $installment->total_paid, 0);
+
+        // ดึงวันที่ชำระครั้งถัดไป
+        $nextPayment = $installment->payments()
+            ->where('status', 'pending')
+            ->orderBy('payment_due_date')
+            ->first();
+
+        return response()->json([
+            'gold_amount' => number_format($installment->gold_amount, 2),
+            'due_today' => number_format($dueToday, 2),
+            'advance_payment' => number_format($installment->advance_payment, 2),
+            'next_payment_date' => $nextPayment ? $nextPayment->payment_due_date : '-',
+            'total_penalty' => number_format($installment->total_penalty, 2),
+            'total_paid' => number_format($installment->total_paid, 2),
+            'total_installment_amount' => number_format($installment->total_installment_amount, 2),
+            'days_passed' => $daysPassed,
+            'installment_period' => $installment->installment_period,
+        ]);
     }
 }

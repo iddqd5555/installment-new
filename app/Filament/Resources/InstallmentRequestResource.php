@@ -13,6 +13,11 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Filament\Tables\Actions\BulkAction;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
 
 class InstallmentRequestResource extends Resource
 {
@@ -142,8 +147,8 @@ class InstallmentRequestResource extends Resource
 
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-            ]);
+            Tables\Actions\DeleteBulkAction::make(),
+        ]);
     }
 
     public static function form(Forms\Form $form): Forms\Form
