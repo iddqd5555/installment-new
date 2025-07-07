@@ -23,50 +23,17 @@ class DailyReportResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table->columns([
-            TextColumn::make('payment_due_date')
-                ->label('วันที่ชำระ')
-                ->date('Y-m-d')
-                ->sortable(),
-            TextColumn::make('payment_due_date')
-                ->label('เวลา')
-                ->date('H:i:s'),
+            TextColumn::make('payment_due_date')->label('วันที่ชำระ')->date('Y-m-d')->sortable(),
+            TextColumn::make('payment_due_date')->label('เวลา')->date('H:i:s'),
             TextColumn::make('installmentRequest.fullname')->label('ชื่อลูกค้า'),
             TextColumn::make('installmentRequest.contract_number')->label('หมายเลขสัญญา'),
             TextColumn::make('installmentRequest.payment_number')->label('เลขที่ใบแจ้งหนี้'),
-            TextColumn::make('installmentRequest.approved_gold_price')
-                ->label('ราคาทองบาทละ')
-                ->money('THB')
-                ->formatStateUsing(fn($record) =>
-                    number_format($record->installmentRequest->approved_gold_price ?? 0, 2)
-                ),
+            TextColumn::make('installmentRequest.approved_gold_price')->label('ราคาทองบาทละ')->money('THB'),
             TextColumn::make('installmentRequest.gold_amount')->label('จำนวนทอง (บาททอง)'),
-            TextColumn::make('installmentRequest.total_gold_real_price')
-                ->label('รวมราคาทอง (บาท)')
-                ->money('THB')
-                ->formatStateUsing(fn($record) =>
-                    number_format(
-                        ($record->installmentRequest->approved_gold_price ?? 0)
-                        * ($record->installmentRequest->gold_amount ?? 0), 2
-                    )
-                ),
+            TextColumn::make('amount')->label('ยอดที่ต้องชำระ (บาท)')->money('THB'),
             TextColumn::make('amount_paid')->label('ยอดที่ชำระแล้ว (บาท)')->money('THB'),
-            TextColumn::make('installmentRequest.remaining_amount')
-                ->label('ยอดคงเหลือ (บาททอง)')
-                ->formatStateUsing(fn($record) => number_format(
-                    max(0, ($record->installmentRequest->gold_amount ?? 0)
-                        - (($record->installmentRequest->total_paid ?? 0) / max(1, ($record->installmentRequest->approved_gold_price ?? 1)))
-                    ), 2
-                )),
-            TextColumn::make('installmentRequest.remaining_gold_value')
-                ->label('ยอดคงเหลือมูลค่า (บาท)')
-                ->money('THB')
-                ->formatStateUsing(fn($record) => number_format(
-                    max(0,
-                        (($record->installmentRequest->approved_gold_price ?? 0)
-                        * ($record->installmentRequest->gold_amount ?? 0))
-                        - ($record->installmentRequest->total_paid ?? 0)
-                    ), 2
-                )),
+            TextColumn::make('installmentRequest.advance_payment')->label('ยอดชำระล่วงหน้า (บาท)')->money('THB'),
+            TextColumn::make('installmentRequest.total_penalty')->label('ค่าปรับสะสม (บาท)')->money('THB'),
             TextColumn::make('installmentRequest.responsible_staff')->label('พนักงานที่รับผิดชอบ'),
             TextColumn::make('status')->label('สถานะ')->badge()
                 ->colors([
@@ -86,27 +53,15 @@ class DailyReportResource extends Resource
                         ->when($data['date_from'], fn($q) => $q->whereDate('payment_due_date', '>=', $data['date_from']))
                         ->when($data['date_until'], fn($q) => $q->whereDate('payment_due_date', '<=', $data['date_until']));
                 }),
-            Tables\Filters\SelectFilter::make('staff')
-                ->label('พนักงานที่ดูแล')
-                ->options(fn() => \App\Models\Admin::pluck('username', 'id')->toArray())
-                ->searchable()
-                ->query(function (Builder $query, $state) {
-                    if (!empty($state)) {
-                        $query->whereHas('installmentRequest', fn($q) => $q->where('responsible_staff', $state));
-                    }
-                }),
         ])
         ->modifyQueryUsing(function (Builder $query) {
             $dateFrom = session('daily_reports.date_from', Carbon::today()->toDateString());
             $dateUntil = session('daily_reports.date_until', Carbon::today()->toDateString());
             $admin = Auth::guard('admin')->user();
-
             $query->whereBetween('payment_due_date', [
                 Carbon::parse($dateFrom)->startOfDay(),
                 Carbon::parse($dateUntil)->endOfDay()
             ]);
-
-            // 🚩 Role-based filter
             if (!in_array($admin->role, ['admin', 'OAA'])) {
                 $query->whereHas('installmentRequest', function($q) use ($admin) {
                     $q->where('responsible_staff', $admin->id);
