@@ -32,28 +32,47 @@
         </div>
     @endif
 
-    @forelse($installmentRequests as $request)
     @php
-        $dailyPayment = $request->daily_payment_amount ?? 0;
-        $daysPassed = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->diffInDays(today()) + 1 : 0;
-        $totalShouldPay = $dailyPayment * $daysPassed;
-        $totalPaid = $request->installmentPayments->where('status', 'approved')->sum('amount_paid') + $request->advance_payment;
-        $dueToday = max($totalShouldPay - $totalPaid, 0);
+        $installment = $installmentRequests->first();
+        $today = \Carbon\Carbon::today()->format('Y-m-d');
 
-        if ($dailyPayment > 0) {
-            $overdueDays = max(0, floor(($totalShouldPay - $totalPaid) / $dailyPayment));
-        } else {
-            $overdueDays = 0; // ✅ ป้องกันการหารด้วย 0 ชัดเจน
-        }
+        $dueToday = $installment->installmentPayments
+            ->where('payment_due_date', $today)
+            ->sum('amount') ?: 0;
 
-        $penaltyAmount = $overdueDays * 100;
+        $totalPaid = $installment->installmentPayments
+            ->where('status', 'approved')
+            ->sum('amount_paid') ?: 0;
+
+        $penaltyPerDay = $installment->daily_penalty ?? 0;
+        $overdue = $installment->installmentPayments
+            ->where('status', 'pending')
+            ->where('payment_due_date', '<', $today)
+            ->count();
+        $totalPenalty = $overdue * $penaltyPerDay;
+
+        $advancePayment = $installment->advance_payment ?? 0;
+
+        $paymentHistory = $installment->installmentPayments
+            ->sortByDesc('payment_due_date')
+            ->take(20);
+
+        $firstApprovedDate = $installment->first_approved_date ?? $installment->start_date;
+        $daysPassed = $firstApprovedDate ? \Carbon\Carbon::parse($firstApprovedDate)->diffInDays(\Carbon\Carbon::today()) : 0;
+        $installmentPeriod = $installment->installment_period ?? 0;
+
+        $nextPayment = $installment->installmentPayments
+            ->where('status', 'pending')
+            ->where('payment_due_date', '>=', $today)
+            ->sortBy('payment_due_date')
+            ->first();
+        $nextPaymentDate = $nextPayment ? $nextPayment->payment_due_date : '-';
     @endphp
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-success text-white">
-            📌 ผ่อนทองจำนวน: <strong>{{ number_format($request->gold_amount ?? 0, 2) }} บาท</strong>
+            📌 ผ่อนทองจำนวน: <strong>{{ number_format($installment->gold_amount ?? 0, 2) }} บาท</strong>
         </div>
-
         <div class="card-body">
             <div class="row text-center mb-4">
                 <div class="col-md-3">
@@ -63,104 +82,50 @@
                 </div>
                 <div class="col-md-3">
                     <div class="alert alert-success">
-                        💰 <strong>ยอดชำระล่วงหน้า</strong><br>{{ number_format($request->advance_payment, 2) }} บาท
+                        💰 <strong>ยอดชำระล่วงหน้า</strong><br>{{ number_format($advancePayment, 2) }} บาท
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="alert alert-warning">
                         📅 <strong>วันชำระครั้งถัดไป</strong><br>
-                        @if($nextPayment = $request->installmentPayments()->where('status', 'pending')->orderBy('payment_due_date')->first())
-                            {{ \Carbon\Carbon::parse($nextPayment->payment_due_date)->format('d/m/Y') }}
-                        @else
-                            ยังไม่กำหนด
-                        @endif
+                        {{ $nextPaymentDate !== '-' ? \Carbon\Carbon::parse($nextPaymentDate)->format('d/m/Y') : 'ยังไม่กำหนด' }}
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="alert alert-danger">
-                        ⚠️ <strong>ค่าปรับสะสม</strong><br>{{ number_format($penaltyAmount, 2) }} บาท
+                        ⚠️ <strong>ค่าปรับสะสม</strong><br>{{ number_format($totalPenalty, 2) }} บาท
                     </div>
                 </div>
             </div>
 
-            {{-- หลอดความคืบหน้าจำนวนเงิน --}}
             <div class="mb-3">
-                <strong>ชำระแล้วทั้งหมด:</strong> {{ number_format($request->total_paid, 2) }} / {{ number_format(DB::table('installment_requests')->where('id', $request->id)->value('total_installment_amount'), 2) }} บาท
-
+                <strong>ชำระแล้วทั้งหมด:</strong> {{ number_format($totalPaid, 2) }} / {{ number_format($installment->total_with_interest, 2) }} บาท
                 <div class="progress mt-2">
-                    @if($request->total_with_interest > 0)
-                        @php
-                            $paymentProgress = ($request->total_paid / $request->total_with_interest) * 100;
-                        @endphp
-                    @else
-                        @php
-                            $paymentProgress = 0;
-                        @endphp
-                    @endif
-
+                    @php
+                        $paymentProgress = ($installment->total_with_interest > 0)
+                            ? ($totalPaid / $installment->total_with_interest) * 100 : 0;
+                    @endphp
                     <div class="progress-bar bg-success" style="width: {{ $paymentProgress }}%;">
                         {{ number_format($paymentProgress, 2) }}%
                     </div>
                 </div>
             </div>
 
-            {{-- หลอดความคืบหน้าระยะเวลาผ่อน --}}
             <div class="mb-3">
                 <strong>ระยะเวลาการผ่อน:</strong>
-                {{ $daysPassed }} / {{ $request->installment_period ?? 'N/A' }} วัน
+                {{ $daysPassed }} / {{ $installmentPeriod }} วัน
                 <div class="progress mt-2">
-                    @if(isset($request->installment_period) && $request->installment_period > 0)
-                        @php
-                            $timeProgress = min(100, ($daysPassed / $request->installment_period) * 100); 
-                        @endphp
-                    @else
-                        @php
-                            $timeProgress = 0; // ป้องกัน Division by zero ชัดเจนที่สุด
-                        @endphp
-                    @endif
+                    @php
+                        $timeProgress = ($installmentPeriod > 0)
+                            ? min(100, ($daysPassed / $installmentPeriod) * 100) : 0;
+                    @endphp
                     <div class="progress-bar bg-info" style="width: {{ $timeProgress }}%;">
                         {{ number_format($timeProgress, 2) }}%
                     </div>
                 </div>
             </div>
-
-            {{-- ปุ่มสำหรับดูข้อมูลธนาคารและอัพโหลดสลิป --}}
-
-            <div class="mt-4">
-                <button class="btn btn-info" data-bs-toggle="collapse" data-bs-target="#bankInfo{{ $request->id }}">🏦 ข้อมูลธนาคาร</button>
-                <button class="btn btn-warning" data-bs-toggle="collapse" data-bs-target="#uploadSlip{{ $request->id }}">📤 อัพโหลดสลิป</button>
-            </div>
-
-            <div class="collapse mt-3" id="bankInfo{{ $request->id }}">
-                <div class="card card-body">
-                    @forelse($bankAccounts as $bank)
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="{{ asset('storage/'.$bank->logo) }}" width="50" class="me-3">
-                            <div>
-                                <strong>{{ $bank->bank_name }}</strong><br>
-                                {{ $bank->account_name }}<br>{{ $bank->account_number }}
-                            </div>
-                        </div>
-                    @empty
-                        <div class="alert alert-secondary">ไม่มีข้อมูลบัญชีธนาคาร</div>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="collapse mt-3" id="uploadSlip{{ $request->id }}">
-                <form action="{{ route('payments.upload-proof', $request->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <input type="number" name="amount_paid" class="form-control mb-2" required placeholder="จำนวนเงินที่โอน (บาท)">
-                    <input type="file" name="payment_proof" class="form-control mb-2" required>
-                    <button class="btn btn-primary">✅ ส่งหลักฐาน</button>
-                </form>
-            </div>
         </div>
     </div>
-
-    @empty
-        <div class="alert alert-warning">⚠️ ไม่มีข้อมูลการผ่อนทองที่อนุมัติค่ะ</div>
-    @endforelse
 
     {{-- ประวัติการชำระเงิน --}}
     <div class="card shadow-sm mt-4">
@@ -168,7 +133,7 @@
             📋 ประวัติการชำระเงินล่าสุด
         </div>
         <div class="card-body">
-            @if($payments->count())
+            @if($paymentHistory->count())
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -178,9 +143,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($payments as $payment)
+                    @foreach($paymentHistory as $payment)
                     <tr>
-                        <td>{{ $payment->payment_due_date ? \Carbon\Carbon::parse($payment->payment_due_date)->format('d/m/Y H:i') : '-' }}</td>
+                        <td>{{ optional($payment->payment_due_date) ? \Carbon\Carbon::parse($payment->payment_due_date)->format('d/m/Y H:i') : '-' }}</td>
                         <td>{{ number_format($payment->amount_paid, 2) }} บาท</td>
                         <td>
                             @if($payment->status == 'approved')
@@ -201,7 +166,5 @@
         </div>
     </div>
 </div>
-<!-- Include Bottom Navigation -->
 @include('partials.bottom-nav')
-
 @endsection
