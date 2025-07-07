@@ -12,6 +12,7 @@ use App\Filament\Resources\InstallmentRequestResource;
 use App\Filament\Resources\PaymentResource;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\StatsOverview;
+use App\Filament\Widgets\DailySummaryTable;
 use App\Filament\Resources\ApprovedInstallmentRequestResource;
 use App\Filament\Resources\InstallmentPaymentResource;
 use App\Filament\Widgets\FinancialReportWidget;
@@ -47,6 +48,7 @@ class AdminPanelProvider extends PanelProvider
                 StatsOverview::class,
                 FinancialReportWidget::class,
                 DailyReportOverview::class,
+                DailySummaryTable::class,
             ]);
     }
 }
