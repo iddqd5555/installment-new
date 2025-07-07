@@ -35,6 +35,7 @@
     @php
         $installment = $installmentRequests->first();
         $today = \Carbon\Carbon::today()->format('Y-m-d');
+        $dueToday = $installment->installmentPayments->where('payment_due_date', $today)->sum('amount') ?: 0;
     @endphp
 
     <div class="card shadow-sm mb-4">
@@ -45,7 +46,7 @@
             <div class="row text-center mb-4">
                 <div class="col-md-3">
                     <div class="alert alert-primary">
-                        💳 <strong>ยอดที่ต้องชำระวันนี้</strong><br>{{ number_format($installment->installmentPayments->where('payment_due_date', $today)->sum('amount') ?? 0, 2) }} บาท
+                        💳 <strong>ยอดที่ต้องชำระวันนี้</strong><br>{{ number_format($dueToday, 2) }} บาท
                     </div>
                 </div>
                 <div class="col-md-3">

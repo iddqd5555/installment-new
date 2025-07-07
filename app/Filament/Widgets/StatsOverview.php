@@ -17,7 +17,7 @@ class StatsOverview extends BaseWidget
     protected function getCards(): array
     {
         $admin = Auth::guard('admin')->user();
-        $today = Carbon::today();
+        $today = Carbon::today()->format('Y-m-d');
 
         $installmentsQuery = InstallmentRequest::query()->where('status', 'approved');
         $paymentsQuery = InstallmentPayment::query();
@@ -34,8 +34,21 @@ class StatsOverview extends BaseWidget
 
         $pendingToday = $paymentsQuery->whereDate('payment_due_date', $today)->where('status', 'pending')->count();
         $totalIncomeToday = $paymentsQuery->whereDate('payment_due_date', $today)->where('status', 'approved')->sum('amount_paid');
-        $dueToday = $paymentsQuery->whereDate('payment_due_date', $today)->sum('amount');
-        $overdueCount = $paymentsQuery->where('status', 'pending')->whereDate('payment_due_date', '<', $today)->count();
+        $dueToday = InstallmentPayment::where('payment_due_date', $today)
+            ->when(!in_array($admin->role, ['admin', 'OAA']), function($q) use ($admin) {
+                $q->whereHas('installmentRequest', function($q2) use ($admin) {
+                    $q2->where('responsible_staff', $admin->id);
+                });
+            })
+            ->sum('amount');
+        $overdueCount = InstallmentPayment::where('status', 'pending')
+            ->whereDate('payment_due_date', '<', $today)
+            ->when(!in_array($admin->role, ['admin', 'OAA']), function($q) use ($admin) {
+                $q->whereHas('installmentRequest', function($q2) use ($admin) {
+                    $q2->where('responsible_staff', $admin->id);
+                });
+            })
+            ->count();
 
         return [
             Card::make('สมาชิกทั้งหมด', $userCount)
