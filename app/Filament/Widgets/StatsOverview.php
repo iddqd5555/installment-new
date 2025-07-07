@@ -19,57 +19,45 @@ class StatsOverview extends BaseWidget
         $admin = Auth::guard('admin')->user();
         $today = Carbon::today();
 
-        // 1. สมาชิกทั้งหมด
+        $installmentsQuery = InstallmentRequest::query()->where('status', 'approved');
+        $paymentsQuery = InstallmentPayment::query();
+
+        if (!in_array($admin->role, ['admin', 'OAA'])) {
+            $installmentsQuery = $installmentsQuery->where('responsible_staff', $admin->id);
+            $paymentsQuery = $paymentsQuery->whereHas('installmentRequest', function ($q) use ($admin) {
+                $q->where('responsible_staff', $admin->id);
+            });
+        }
+
         $userCount = User::count();
+        $activeInstallment = $installmentsQuery->count();
 
-        // 2. ลูกค้าที่กำลังผ่อน (active installment)
-        $activeInstallment = InstallmentRequest::where('status', 'approved')->count();
-
-        // 3. ยอดชำระที่รออนุมัติ (pending) วันนี้
-        $pendingToday = InstallmentPayment::whereDate('payment_due_date', $today)
-            ->where('status', 'pending')
-            ->count();
-
-        // 4. รายได้รวมวันนี้ (ชำระแล้ววันนี้)
-        $totalIncomeToday = InstallmentPayment::whereDate('payment_due_date', $today)
-            ->where('status', 'approved')
-            ->sum('amount_paid');
-
-        // 5. ยอดที่ต้องชำระวันนี้ (ทุกคน, เฉพาะงวดวันนี้)
-        $dueToday = InstallmentPayment::whereDate('payment_due_date', $today)
-            ->sum('amount');
-
-        // 6. ยอดที่ค้างชำระ (overdue ทุกงวดก่อนวันนี้)
-        $overdueCount = InstallmentPayment::where('status', 'pending')
-            ->whereDate('payment_due_date', '<', $today)
-            ->count();
+        $pendingToday = $paymentsQuery->whereDate('payment_due_date', $today)->where('status', 'pending')->count();
+        $totalIncomeToday = $paymentsQuery->whereDate('payment_due_date', $today)->where('status', 'approved')->sum('amount_paid');
+        $dueToday = $paymentsQuery->whereDate('payment_due_date', $today)->sum('amount');
+        $overdueCount = $paymentsQuery->where('status', 'pending')->whereDate('payment_due_date', '<', $today)->count();
 
         return [
             Card::make('สมาชิกทั้งหมด', $userCount)
                 ->icon('heroicon-o-user-group')
                 ->color('success')
                 ->description('ลูกค้าทั้งหมด'),
-
             Card::make('คำขอผ่อนที่อนุมัติ', $activeInstallment)
                 ->icon('heroicon-o-hand-thumb-up')
                 ->color('info')
                 ->description('สัญญาอนุมัติ'),
-
             Card::make('ยอดที่ต้องชำระวันนี้', number_format($dueToday, 2) . ' บาท')
                 ->icon('heroicon-o-calendar-days')
                 ->color('warning')
                 ->description('รวมทุกลูกค้างวดวันนี้'),
-
             Card::make('รออนุมัติวันนี้', $pendingToday)
                 ->icon('heroicon-o-clock')
                 ->color('danger')
                 ->description('งวดวันนี้ที่ยังรออนุมัติ'),
-
             Card::make('ค้างชำระ (สะสม)', $overdueCount)
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color('danger')
                 ->description('งวดที่เลยวันครบกำหนด'),
-
             Card::make('รายได้รวมวันนี้', number_format($totalIncomeToday, 2) . ' บาท')
                 ->icon('heroicon-o-currency-dollar')
                 ->color('primary')

@@ -17,13 +17,10 @@ class DailyReportOverview extends BaseWidget
 
         $dateFrom = Carbon::parse($dateFrom)->startOfDay();
         $dateUntil = Carbon::parse($dateUntil)->endOfDay();
-
         $admin = Auth::guard('admin')->user();
 
         $payments = InstallmentPayment::with('installmentRequest')
             ->whereBetween('payment_due_date', [$dateFrom, $dateUntil]);
-
-        // 🚩 Role-based filter (staff เห็นเฉพาะลูกค้าที่ตัวเองดูแล, OAA/admin เห็นทุกคน)
         if (!in_array($admin->role, ['admin', 'OAA'])) {
             $payments = $payments->whereHas('installmentRequest', function($q) use ($admin) {
                 $q->where('responsible_staff', $admin->id);
