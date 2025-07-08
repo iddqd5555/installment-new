@@ -14,6 +14,7 @@ class UserLocationController extends Controller
         $lat = $request->input('lat');
         $lng = $request->input('lng');
         $ip = $request->ip();
+        $publicIp = $request->input('public_ip');
 
         $vpn_status = 'ok';
         $notes = '';
@@ -29,7 +30,7 @@ class UserLocationController extends Controller
             $notes .= 'ตำแหน่งอยู่นอกประเทศไทย. ';
         }
 
-        if (!$this->isThaiIP($ip)) {
+        if (!$this->isThaiIP($publicIp ?? $ip)) {
             $vpn_status = 'vpn';
             $notes .= 'ตรวจพบ IP ไม่ใช่ประเทศไทย (VPN?). ';
         }
@@ -39,6 +40,7 @@ class UserLocationController extends Controller
             'lat' => $lat,
             'lng' => $lng,
             'ip' => $ip,
+            'public_ip' => $publicIp,
             'is_mocked' => $isMocked,
             'vpn_status' => $vpn_status,
             'notes' => $notes,
@@ -48,7 +50,7 @@ class UserLocationController extends Controller
             'user_id' => $user->id,
             'name' => $user->first_name . ' ' . $user->last_name,
             'phone' => $user->phone,
-            'ip' => $ip,
+            'ip' => $publicIp ?: $ip, // บันทึก public IP จริง
             'latitude' => $lat,
             'longitude' => $lng,
             'vpn_status' => $vpn_status,
@@ -72,6 +74,7 @@ class UserLocationController extends Controller
 
     private function isThaiIP($ip)
     {
+        if (!$ip) return false;
         return preg_match('/^(1|27|43|49|58|101|103|110|111|112|113|114|115|116|118|119|120|121|122|124|125|126|128|134|139|171|172|175|180|182|183|202|203|210|218|219|223)\./', $ip);
     }
 }
