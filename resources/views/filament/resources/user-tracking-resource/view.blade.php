@@ -1,6 +1,6 @@
 <x-filament::page>
     <h2>ประวัติการใช้งานลูกค้า: {{ $record->first_name }} {{ $record->last_name }} ({{ $record->phone }})</h2>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto mt-4">
         <table class="table-auto min-w-full">
             <thead>
                 <tr>
@@ -14,7 +14,10 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($locationLogs as $log)
+                @php
+                  $logs = \App\Models\UserLocationLog::where('user_id', $record->id)->orderByDesc('created_at')->get();
+                @endphp
+                @forelse ($logs as $log)
                     <tr>
                         <td>{{ $log->created_at }}</td>
                         <td>{{ $log->latitude }}</td>
@@ -49,7 +52,11 @@
                         </td>
                         <td>{{ $log->notes }}</td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center">ไม่พบประวัติการใช้งาน</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
