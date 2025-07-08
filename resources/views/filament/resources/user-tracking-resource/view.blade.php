@@ -1,6 +1,9 @@
 <x-filament::page>
     <h2>ประวัติการใช้งานลูกค้า: {{ $record->first_name }} {{ $record->last_name }} ({{ $record->phone }})</h2>
     <div class="overflow-x-auto mt-4">
+        @php
+          $logs = \App\Models\UserLocationLog::where('user_id', $record->id)->orderByDesc('created_at')->get();
+        @endphp
         <table class="table-auto min-w-full">
             <thead>
                 <tr>
@@ -14,9 +17,6 @@
                 </tr>
             </thead>
             <tbody>
-                @php
-                  $logs = \App\Models\UserLocationLog::where('user_id', $record->id)->orderByDesc('created_at')->get();
-                @endphp
                 @forelse ($logs as $log)
                     <tr>
                         <td>{{ $log->created_at }}</td>
@@ -34,28 +34,17 @@
                         <td>{{ $log->ip }}</td>
                         <td>
                             @switch($log->vpn_status)
-                                @case('ok')
-                                    <span class="badge badge-success">ปกติ</span>
-                                    @break
-                                @case('mock')
-                                    <span class="badge badge-danger">Mock</span>
-                                    @break
-                                @case('vpn')
-                                    <span class="badge badge-danger">VPN</span>
-                                    @break
-                                @case('foreign')
-                                    <span class="badge badge-warning">นอกไทย</span>
-                                    @break
-                                @default
-                                    {{ $log->vpn_status }}
+                                @case('ok') <span class="badge badge-success">ปกติ</span> @break
+                                @case('mock') <span class="badge badge-danger">Mock</span> @break
+                                @case('vpn') <span class="badge badge-danger">VPN</span> @break
+                                @case('foreign') <span class="badge badge-warning">นอกไทย</span> @break
+                                @default {{ $log->vpn_status }}
                             @endswitch
                         </td>
                         <td>{{ $log->notes }}</td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" class="text-center">ไม่พบประวัติการใช้งาน</td>
-                    </tr>
+                    <tr><td colspan="7" class="text-center">ไม่พบประวัติการใช้งาน</td></tr>
                 @endforelse
             </tbody>
         </table>
