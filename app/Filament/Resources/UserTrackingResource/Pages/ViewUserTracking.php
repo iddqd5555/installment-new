@@ -12,11 +12,15 @@ class ViewUserTracking extends ViewRecord
 
     protected function getViewData(): array
     {
+        $logs = \App\Models\UserLocationLog::where('user_id', $this->record->id)
+                    ->orderByDesc('created_at')
+                    ->get();
+
+        dd($logs);  // ใส่บรรทัดนี้เพื่อ debug แบบชัดเจน
+
         return [
             'record' => $this->record,
-            'locationLogs' => UserLocationLog::where('user_id', $this->record->id)
-                ->orderByDesc('created_at')
-                ->get(),
+            'locationLogs' => $logs,
         ];
     }
 }

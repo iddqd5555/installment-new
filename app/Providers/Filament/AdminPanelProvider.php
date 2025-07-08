@@ -20,7 +20,6 @@ use App\Filament\Resources\DailyReportResource;
 use App\Filament\Resources\DailyReportResource\Widgets\DailyReportOverview;
 use App\Filament\Resources\UserTrackingResource;
 
-
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel

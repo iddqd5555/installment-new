@@ -1,4 +1,7 @@
-<x-filament::page>
+{{-- DEBUG --}}
+<pre>{{ json_encode($locationLogs ?? [], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE) }}</pre>
+
+<x-filament-panels::page>
     <h2 class="text-xl font-semibold mb-4">
         ประวัติการใช้งานลูกค้า: {{ $record->first_name }} {{ $record->last_name }} ({{ $record->phone }})
     </h2>
@@ -23,8 +26,8 @@
                         <td>{{ $log->longitude }}</td>
                         <td>
                             @if($log->latitude && $log->longitude)
-                                <a href="https://www.google.com/maps?q={{ $log->latitude }},{{ $log->longitude }}" 
-                                   target="_blank" 
+                                <a href="https://www.google.com/maps?q={{ $log->latitude }},{{ $log->longitude }}"
+                                   target="_blank"
                                    class="px-2 py-1 bg-green-600 text-white rounded">
                                     ดูแผนที่
                                 </a>
@@ -42,4 +45,4 @@
             </tbody>
         </table>
     </div>
-</x-filament::page>
+</x-filament-panels::page>
