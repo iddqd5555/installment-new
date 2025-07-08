@@ -6,6 +6,10 @@ use App\Http\Controllers\InstallmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Api\UserLocationController;
+
+
+Route::middleware('auth:sanctum')->post('/user/update-location', [UserLocationController::class, 'updateLocation']);
 
 
 Route::middleware('auth:sanctum')->group(function () {

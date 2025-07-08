@@ -37,6 +37,8 @@ class User extends Authenticatable
         'two_factor_enabled',
         'last_login_at',
         'last_login_ip',
+        'latitude',
+        'longitude',
     ];
 
     protected $hidden = [

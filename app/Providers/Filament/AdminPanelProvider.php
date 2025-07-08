@@ -19,6 +19,9 @@ use App\Filament\Widgets\FinancialReportWidget;
 use App\Filament\Resources\DailyReportResource;
 use App\Filament\Resources\DailyReportResource\Widgets\DailyReportOverview;
 
+// ⭐️ เพิ่ม use ตรงนี้!
+use App\Filament\Resources\UserLocationLogResource;
+
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
@@ -38,8 +41,9 @@ class AdminPanelProvider extends PanelProvider
                 InstallmentRequestResource::class,
                 PaymentResource::class,
                 ApprovedInstallmentRequestResource::class,
-                InstallmentPaymentResource::class, // 👈 เพิ่มบรรทัดนี้ชัดเจน
+                InstallmentPaymentResource::class,
                 DailyReportResource::class,
+                UserLocationLogResource::class, // 👈 อย่าลืม!
             ])
             ->pages([
                 Dashboard::class,

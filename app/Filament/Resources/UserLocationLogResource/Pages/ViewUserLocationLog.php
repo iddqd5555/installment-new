@@ -30,7 +30,7 @@ class ViewUserLocationLog extends ViewRecord
         ];
     }
 
-    public function mount($record)
+    public function mount(string|int $record): void
     {
         parent::mount($record);
     }
