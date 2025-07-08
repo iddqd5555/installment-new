@@ -10,13 +10,13 @@ class ViewUserTracking extends ViewRecord
 {
     protected static string $resource = UserTrackingResource::class;
 
-    public function getViewData(): array
+    protected function getViewData(): array
     {
         return [
+            'record' => $this->record,
             'locationLogs' => UserLocationLog::where('user_id', $this->record->id)
                 ->orderByDesc('created_at')
                 ->get(),
-            'record' => $this->record,
         ];
     }
 }
