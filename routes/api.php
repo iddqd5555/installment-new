@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InstallmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
+use App\Http\Controllers\ProfileController;
+
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard-data', [DashboardApiController::class, 'dashboardData']);

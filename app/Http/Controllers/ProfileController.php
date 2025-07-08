@@ -10,8 +10,17 @@ class ProfileController extends Controller
 {
     public function show(Request $request)
     {
+        \Log::info('user()', [$request->user()]);
         $user = $request->user();
-        return response()->json($user);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+        try {
+            return response()->json($user->toArray());
+        } catch (\Throwable $e) {
+            \Log::error('Profile error: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function update(Request $request)
@@ -27,14 +36,12 @@ class ProfileController extends Controller
             'address' => 'nullable|string',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string',
-            // เพิ่ม validation field อื่นๆได้ตาม DB
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Update user profile fields
         $user->first_name = $data['first_name'];
         $user->last_name = $data['last_name'];
         $user->phone = $data['phone'];
@@ -42,10 +49,7 @@ class ProfileController extends Controller
         $user->address = $data['address'] ?? null;
         $user->date_of_birth = $data['date_of_birth'] ?? null;
         $user->gender = $data['gender'] ?? null;
-        // เพิ่มฟิลด์อื่นๆ (workplace, salary, bank_xxx)
-        // ....
 
-        // อัปโหลดไฟล์
         if ($request->hasFile('id_card_image')) {
             $filename = 'idcard_' . $user->id . '_' . time() . '.' . $request->file('id_card_image')->getClientOriginalExtension();
             $path = $request->file('id_card_image')->storeAs('uploads', $filename, 'public');

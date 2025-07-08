@@ -1,17 +1,15 @@
-@extends('layouts.app')
+<?php $__env->startSection('content'); ?>
 
-@section('content')
 
-{{-- Banner หลัก --}}
 <div class="theme-bg text-white py-5">
     <div class="container text-center">
         <h1 class="display-4 fw-bold">บัตรประชาชนใบเดียว ก็ผ่อนได้</h1>
         <div class="lead mb-2" style="font-size:1.2em;">ไม่เช็คแบล็คลิสต์ ไม่เช็คบูโร ไม่ใช้คนค้ำ</div>
-        <a href="{{ route('gold.index') }}" class="btn btn-light btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
+        <a href="<?php echo e(route('gold.index')); ?>" class="btn btn-light btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
     </div>
 </div>
 
-{{-- ตารางราคารับจำนำ --}}
+
 <div class="container py-4">
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
@@ -45,7 +43,7 @@
     </div>
 </div>
 
-{{-- จุดเด่น --}}
+
 <div class="container mb-3">
     <div class="row text-center g-3">
         <div class="col-md-3 col-6">
@@ -63,23 +61,23 @@
     </div>
 </div>
 
-{{-- รีวิวลูกค้าจริง --}}
+
 <div class="container">
     <div class="section-title">รีวิวบ้างส่วนจากลูกค้าจริง</div>
     <div class="row g-3">
-        @for($i=1;$i<=4;$i++)
+        <?php for($i=1;$i<=4;$i++): ?>
         <div class="col-md-3 col-6">
             <div class="section-card text-center">
                 <div class="mb-2"><img src="https://placehold.co/80x80/730A22/fff?text=IMG" class="rounded-circle" /></div>
-                <div class="fw-bold mb-1">ลูกค้ารีวิว {{ $i }}</div>
+                <div class="fw-bold mb-1">ลูกค้ารีวิว <?php echo e($i); ?></div>
                 <div style="font-size:14px;">ได้รับทองจริง ผ่อนง่าย</div>
             </div>
         </div>
-        @endfor
+        <?php endfor; ?>
     </div>
 </div>
 
-{{-- ขั้นตอนการสมัคร --}}
+
 <div class="container my-5">
     <div class="section-title">ขั้นตอนการสมัครผ่อนทอง</div>
     <div class="row text-center mb-4">
@@ -101,7 +99,7 @@
     </div>
 </div>
 
-{{-- คุณสมบัติและเอกสาร --}}
+
 <div class="container">
     <div class="row g-3">
         <div class="col-md-6">
@@ -130,7 +128,7 @@
     </div>
 </div>
 
-{{-- พื้นที่ให้บริการ --}}
+
 <div class="container py-3">
     <div class="section-title">พื้นที่ให้บริการ</div>
     <div class="section-card">
@@ -144,11 +142,11 @@
     </div>
 </div>
 
-{{-- FAQ --}}
+
 <div class="container pb-3">
     <div class="section-title">คำถามที่พบบ่อย (FAQ)</div>
     <div class="accordion" id="faqAccordion">
-        @php
+        <?php
         $faqs = [
             ["q" => "คำถามเกี่ยวกับผ่อนทองทั่วไป", "a" => "สามารถผ่อนทองได้โดยใช้บัตรประชาชนใบเดียว"],
             ["q" => "ผ่อนเครื่องใช้ไฟฟ้าได้ไหม", "a" => "ได้ มีบริการผ่อนเครื่องใช้ไฟฟ้า"],
@@ -156,23 +154,24 @@
             ["q" => "การรับทองที่ไหน", "a" => "รับทองหน้าร้านหรือจัดส่งถึงบ้าน"],
             ["q" => "ทองผ่อนได้ไหม", "a" => "ผ่อนได้โดยใช้บัตรประชาชนใบเดียว"],
         ];
-        @endphp
-        @foreach($faqs as $i => $faq)
+        ?>
+        <?php $__currentLoopData = $faqs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $faq): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="accordion-item">
-            <h2 class="accordion-header" id="faq{{ $i }}">
-                <button class="accordion-button collapsed theme-color" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $i }}">
-                    {{ $faq['q'] }}
+            <h2 class="accordion-header" id="faq<?php echo e($i); ?>">
+                <button class="accordion-button collapsed theme-color" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo e($i); ?>">
+                    <?php echo e($faq['q']); ?>
+
                 </button>
             </h2>
-            <div id="collapse{{ $i }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">{{ $faq['a'] }}</div>
+            <div id="collapse<?php echo e($i); ?>" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body"><?php echo e($faq['a']); ?></div>
             </div>
         </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
 
-{{-- ฟอร์มขอผ่อนทอง --}}
+
 <div class="container pb-3">
     <div class="section-title">แบบฟอร์มขอผ่อนทอง</div>
     <div class="section-card">
@@ -194,7 +193,7 @@
     </div>
 </div>
 
-{{-- Footer --}}
+
 <footer class="footer mt-5">
     <div class="container">
         <div class="row g-3">
@@ -220,7 +219,7 @@
     </div>
 </footer>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -235,6 +234,8 @@
     .footer { background: #730A22; color: #fff; padding: 32px 0 18px 0; }
     .footer-logo { font-size: 1.2em; font-weight: bold; letter-spacing: 1px; }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\installment-new\resources\views/welcome.blade.php ENDPATH**/ ?>

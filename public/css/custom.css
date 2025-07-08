@@ -1,53 +1,70 @@
 :root {
-    --primary-green: #1e8e3e;
+    --primary-maroon: #730A22;
 }
 
-.btn-success, .text-success {
-    background-color: var(--primary-green) !important;
-    border-color: var(--primary-green) !important;
+body {
+    font-family: 'Sarabun', sans-serif;
+    background: #f7f7f7;
 }
-
-.card {
-    border-radius: 12px;
+.theme-bg { background: var(--primary-maroon) !important; }
+.theme-color { color: var(--primary-maroon) !important; }
+.btn-theme {
+    background: var(--primary-maroon) !important;
+    color: #fff !important;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: bold;
     border: none;
 }
-
-.card-img-top {
-    border-radius: 12px 12px 0 0;
-    height: 250px;
-    object-fit: cover;
+.feature-card, .section-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 16px #730A221a;
+    margin-bottom: 18px;
+    padding: 22px 26px;
+    font-weight: bold;
+    color: var(--primary-maroon);
 }
-
-.bg-kplus-green {
-    background-color: #09aa5c;
+.feature-card i {
+    font-size: 1.7em;
+    margin-right: 14px;
 }
-#mobile-menu {
-    height: 0;
-    overflow: hidden;
+.section-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--primary-maroon);
+    margin: 32px 0 16px 0;
 }
-.transition-height {
-    transition: height 0.5s ease;
+.step-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--primary-maroon);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5em;
+    margin: 0 auto 10px auto;
 }
-
-#mobile-menu a {
-    color: white;
-    transition: background-color 0.3s;
+.footer {
+    background: var(--primary-maroon);
+    color: #fff;
+    padding: 32px 0 18px 0;
 }
-
+.footer-logo {
+    font-size: 1.2em;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.bg-kplus-green,
+.text-success,
+.btn-success,
+.btn-outline-light:hover,
+.btn-outline-light,
 #mobile-menu a:hover {
-    background-color: #05753d;
+    background: var(--primary-maroon) !important;
+    color: #fff !important;
+    border-color: var(--primary-maroon) !important;
 }
-
-.btn-outline-light {
-    color: white;
-    border-color: white;
-}
-
-.btn-outline-light:hover {
-    background-color: white;
-    color: #09aa5c;
-}
-#content-wrapper {
-    transition: margin-top 0.3s ease;
-}
-
