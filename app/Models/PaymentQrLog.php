@@ -14,4 +14,10 @@ class PaymentQrLog extends Model
     {
         return $this->belongsTo(InstallmentPayment::class);
     }
+
+    public function customer()
+    {
+        // แก้ไขชื่อ model User ตามโปรเจกต์คุณ
+        return $this->belongsTo(\App\Models\User::class, 'customer_id');
+    }
 }

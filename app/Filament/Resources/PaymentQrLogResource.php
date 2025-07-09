@@ -6,12 +6,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use App\Models\PaymentQrLog;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\DateFilter;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Actions\ActionGroup;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\PaymentQrLogResource\Pages;
 
 class PaymentQrLogResource extends Resource
 {
@@ -43,7 +45,16 @@ class PaymentQrLogResource extends Resource
                 TextColumn::make('created_at')->dateTime('d/m/Y H:i')->label('เวลาสร้าง')->sortable(),
             ])
             ->filters([
-                DateFilter::make('created_at')->label('ค้นหาตามวัน/เดือน'),
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from')->label('จาก'),
+                        DatePicker::make('created_until')->label('ถึง'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when($data['created_from'], fn ($q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'], fn ($q, $date) => $q->whereDate('created_at', '<=', $date));
+                    }),
                 SelectFilter::make('status')
                     ->label('สถานะ')
                     ->options([
