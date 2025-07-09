@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use Filament\Resources\Resource;
-use Filament\Resources\Table;
+use Filament\Tables;
 use App\Models\PaymentQrLog;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Resources\Pages\ListRecords;
@@ -15,7 +15,7 @@ class PaymentQrLogResource extends Resource
     protected static ?string $navigationGroup = 'การจัดการการเงิน';
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    public static function table(Table $table): Table
+    public static function table(Tables\Table $table): Tables\Table
     {
         return $table
             ->columns([
