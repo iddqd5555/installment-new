@@ -48,4 +48,15 @@ class KBankApiService
 
         return $response->json();
     }
+    public function inquiryQrStatus($accessToken, $qrRef)
+    {
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $accessToken,
+            'x-test-mode' => 'true'
+        ])->get($this->baseUrl . '/qr/inquiry', [
+            'qrRef' => $qrRef
+        ]);
+        return $response->json();
+    }
+
 }

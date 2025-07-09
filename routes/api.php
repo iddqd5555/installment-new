@@ -7,6 +7,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\UserLocationController;
+use App\Http\Controllers\KBankPaymentController;
+
+Route::post('/payment/qr', [KBankPaymentController::class, 'generateQr']);
+Route::get('/payment/qr-status/{qrRef}', [KBankPaymentController::class, 'checkQrStatus']);
+
 
 
 Route::middleware('auth:sanctum')->post('/user/update-location', [UserLocationController::class, 'updateLocation']);
