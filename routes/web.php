@@ -1,20 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\InstallmentRequestController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\User\InstallmentController;
+use App\Http\Controllers\InstallmentRequestController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
-use App\Http\Controllers\NotificationController; // ✅ เพิ่มใหม่
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\KBankTestController;
 
-Route::get('/kbank/token', [KBankTestController::class, 'getAccessToken']);
-Route::get('/kbank/create-qr', [KBankTestController::class, 'createQr']);
-
-
-// หน้าแรก สำหรับผู้ใช้ที่ไม่ได้ล็อคอิน
+// ------------------- หน้าแรก/Guest -------------------
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -22,6 +19,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Guest access: ดูราคาทอง/ขอผ่อนแบบ guest
 Route::middleware(['guest'])->group(function() {
     Route::get('/gold', [InstallmentRequestController::class, 'goldapi'])->name('gold.index');
     Route::post('/gold/submit-guest', [InstallmentRequestController::class, 'submitGoldGuest'])->name('gold.submit_guest');
@@ -30,14 +28,11 @@ Route::middleware(['guest'])->group(function() {
 Route::get('/phone', function () {
     return view(auth()->check() ? 'phone_logged_in' : 'phone');
 })->name('phone');
-
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
-Route::get('/dashboard', [InstallmentRequestController::class, 'dashboard'])
-    ->middleware('auth')->name('dashboard');
-
+// ------------------- Auth / Profile -------------------
 Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -50,24 +45,39 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::get('/gold/member', [InstallmentRequestController::class, 'showGoldForm'])->name('gold.member');
-    Route::post('/gold/member/store', [InstallmentRequestController::class, 'submitGoldMember'])->name('gold.request.store');
-
-    Route::get('/installments/request/create/{id}', [InstallmentRequestController::class, 'create'])
-        ->name('installments.request.create');
-
-    Route::get('/orders/history', [InstallmentRequestController::class, 'orderHistory'])
-        ->name('orders.history');
-
-    Route::post('payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
-
     Route::get('/payment-info', [BankAccountController::class, 'index'])->name('payment-info');
-
-    // ✅ เพิ่ม route สำหรับระบบแจ้งเตือน
+    // ระบบแจ้งเตือน
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
 });
 
-// Authentication Routes
+// ------------------- User: คำขอผ่อนทอง/งวดผ่อน/จ่ายเงิน -------------------
+Route::middleware(['auth'])->group(function() {
+    // CRUD คำขอผ่อนทอง (user)
+    Route::get('/installments', [InstallmentController::class, 'index'])->name('user.installments.index');
+    Route::get('/installments/create', [InstallmentController::class, 'create'])->name('user.installments.create');
+    Route::post('/installments', [InstallmentController::class, 'store'])->name('user.installments.store');
+    Route::get('/installments/{id}', [InstallmentController::class, 'show'])->name('user.installments.show');
+
+    // Dashboard/ผ่อน/จ่ายเงิน/ประวัติ QR
+    Route::get('/dashboard', [InstallmentController::class, 'dashboard'])->name('dashboard'); // <--- alias dashboard (จบ error)
+    Route::get('/user/dashboard', [InstallmentController::class, 'dashboard'])->name('user.dashboard');
+    Route::get('/qr-history', [InstallmentController::class, 'qrHistory'])->name('user.qr_history');
+    Route::get('/installment/{id}/create-qr', [InstallmentController::class, 'createQr'])->name('user.create_qr');
+});
+
+// ------------------- KBank Test -------------------
+Route::get('/kbank/token', [KBankTestController::class, 'getAccessToken']);
+Route::get('/kbank/create-qr', [KBankTestController::class, 'createQr']);
+
+// ------------------- ฝั่ง admin/หลังบ้าน/ระบบอื่น -------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/gold/member', [InstallmentRequestController::class, 'showGoldForm'])->name('gold.member');
+    Route::post('/gold/member/store', [InstallmentRequestController::class, 'submitGoldMember'])->name('gold.request.store');
+    Route::get('/installments/request/create/{id}', [InstallmentRequestController::class, 'create'])->name('installments.request.create');
+    Route::get('/orders/history', [InstallmentRequestController::class, 'orderHistory'])->name('orders.history');
+    Route::post('payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
+});
+
+// ------------------- Auth route, Admin route -------------------
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';
