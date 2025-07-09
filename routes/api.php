@@ -11,6 +11,9 @@ use App\Http\Controllers\KBankPaymentController;
 
 Route::post('/payment/qr', [KBankPaymentController::class, 'generateQr']);
 Route::get('/payment/qr-status/{qrRef}', [KBankPaymentController::class, 'checkQrStatus']);
+Route::post('/payment/inquiry-v4', [KBankPaymentController::class, 'inquiryV4Qr']);
+Route::post('/payment/cancel-qr', [KBankPaymentController::class, 'cancelQr']);
+Route::post('/payment/void-payment', [KBankPaymentController::class, 'voidPayment']);
 
 
 
