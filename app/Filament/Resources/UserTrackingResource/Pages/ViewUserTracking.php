@@ -8,7 +8,6 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\Actions\ActionEntry;
 
 class ViewUserTracking extends ViewRecord
 {
@@ -20,7 +19,6 @@ class ViewUserTracking extends ViewRecord
             ->orderByDesc('created_at')
             ->get();
 
-        // ถ้าไม่มี log
         if ($logs->isEmpty()) {
             return $infolist->schema([
                 Section::make('ประวัติเข้าใช้งาน')
@@ -32,10 +30,20 @@ class ViewUserTracking extends ViewRecord
             ]);
         }
 
-        // ถ้ามี log
         $schemas = [];
         foreach ($logs as $i => $log) {
-            $schemas[] = Section::make('Log #' . ($i + 1) . ': ' . ($log->created_at?->format('Y-m-d H:i:s')))
+            // ========== แก้ตรงนี้ ==========
+            $createdAt = '';
+            try {
+                $createdAt = $log->created_at
+                    ? \Carbon\Carbon::parse($log->created_at)->timezone('Asia/Bangkok')->format('Y-m-d H:i:s')
+                    : '';
+            } catch (\Exception $e) {
+                $createdAt = (string) $log->created_at;
+            }
+            // ===============================
+
+            $schemas[] = Section::make('Log #' . ($i + 1) . ': ' . $createdAt)
                 ->schema([
                     TextEntry::make('ip')->label('IP')->default($log->ip),
                     TextEntry::make('vpn_status')->label('VPN')->default($log->vpn_status),
