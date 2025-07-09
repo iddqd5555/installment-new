@@ -6,7 +6,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use App\Filament\Resources\AdminResource;
-use App\Filament\Resources\BankAccountResource;
+//use App\Filament\Resources\BankAccountResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\InstallmentRequestResource;
 use App\Filament\Resources\PaymentQrLogResource; // <<-- เพิ่มใหม่
@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('images/favicon.ico'))
             ->resources([
                 AdminResource::class,
-                BankAccountResource::class, // ถ้าไม่ใช้ ลบ/คอมเมนต์ออก
+                //BankAccountResource::class, // ถ้าไม่ใช้ ลบ/คอมเมนต์ออก
                 UserResource::class,
                 InstallmentRequestResource::class,
                 // PaymentResource::class,   // <-- ลบออก

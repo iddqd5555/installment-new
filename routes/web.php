@@ -8,6 +8,11 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\NotificationController; // ✅ เพิ่มใหม่
+use App\Http\Controllers\KBankTestController;
+
+Route::get('/kbank/token', [KBankTestController::class, 'getAccessToken']);
+Route::get('/kbank/create-qr', [KBankTestController::class, 'createQr']);
+
 
 // หน้าแรก สำหรับผู้ใช้ที่ไม่ได้ล็อคอิน
 Route::get('/', function () {
