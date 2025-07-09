@@ -9,7 +9,7 @@ use App\Filament\Resources\AdminResource;
 use App\Filament\Resources\BankAccountResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\InstallmentRequestResource;
-use App\Filament\Resources\PaymentResource;
+use App\Filament\Resources\PaymentQrLogResource; // <<-- เพิ่มใหม่
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\DailySummaryTable;
@@ -34,14 +34,15 @@ class AdminPanelProvider extends PanelProvider
             ->favicon(asset('images/favicon.ico'))
             ->resources([
                 AdminResource::class,
-                BankAccountResource::class,
+                BankAccountResource::class, // ถ้าไม่ใช้ ลบ/คอมเมนต์ออก
                 UserResource::class,
                 InstallmentRequestResource::class,
-                PaymentResource::class,
+                // PaymentResource::class,   // <-- ลบออก
                 ApprovedInstallmentRequestResource::class,
                 InstallmentPaymentResource::class,
                 DailyReportResource::class,
                 UserTrackingResource::class,
+                PaymentQrLogResource::class, // <<-- เพิ่มอันนี้เข้าไป
             ])
             ->pages([
                 Dashboard::class,

@@ -12,6 +12,7 @@ class PaymentQrLogResource extends Resource
 {
     protected static ?string $model = PaymentQrLog::class;
     protected static ?string $navigationLabel = 'ประวัติรับเงิน QR KBank';
+    protected static ?string $navigationGroup = 'การจัดการการเงิน';
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     public static function table(Table $table): Table
