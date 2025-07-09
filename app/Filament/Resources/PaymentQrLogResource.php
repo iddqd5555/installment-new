@@ -2,59 +2,68 @@
 
 namespace App\Filament\Resources;
 
-use App\Models\PaymentQrLog;
-use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use App\Filament\Resources\PaymentQrLogResource\Pages\ListPaymentQrLogs;
-use App\Filament\Resources\PaymentQrLogResource\Pages\CreatePaymentQrLog;
-use App\Filament\Resources\PaymentQrLogResource\Pages\EditPaymentQrLog;
+use App\Models\PaymentQrLog;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\DateFilter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Actions\ExportAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Resources\Pages\ListRecords;
 
 class PaymentQrLogResource extends Resource
 {
     protected static ?string $model = PaymentQrLog::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-qr-code';
-    protected static ?string $navigationLabel = 'QR Payment Logs';
+    protected static ?string $navigationLabel = 'ประวัติรับเงิน QR KBank';
     protected static ?string $navigationGroup = 'การจัดการการเงิน';
-
-    public static function form(Forms\Form $form): Forms\Form
-    {
-        return $form->schema([
-            Forms\Components\TextInput::make('user_id')->required(),
-            Forms\Components\TextInput::make('amount')->required(),
-            Forms\Components\TextInput::make('status')->required(),
-            // ปรับแต่ง schema ตามที่คุณต้องการเพิ่มเติมได้
-        ]);
-    }
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user_id')->label('User ID'),
-                Tables\Columns\TextColumn::make('amount')->label('Amount'),
-                Tables\Columns\TextColumn::make('status')->label('Status'),
+                TextColumn::make('qr_ref')->label('QR Ref')->copyable()->searchable(),
+                TextColumn::make('amount')->label('ยอดเงิน')->money('THB')->sortable(),
+                TextColumn::make('status')->label('สถานะ')->badge()
+                    ->colors([
+                        'success' => 'paid',
+                        'danger' => 'void',
+                        'warning' => 'pending',
+                    ])
+                    ->sortable(),
+                TextColumn::make('transaction_id')->label('รหัสธุรกรรม')->copyable()->searchable(),
+                TextColumn::make('customer_id')->label('ลูกค้า')
+                    ->getStateUsing(fn($record)=> $record->customer_id ? optional($record->customer)->name ?? $record->customer_id : '-')
+                    ->searchable(),
+                TextColumn::make('installment_payment_id')->label('งวดผ่อน')
+                    ->getStateUsing(fn($record)=> $record->installment_payment_id ? optional($record->installmentPayment)->due_date ?? $record->installment_payment_id : '-')
+                    ->searchable(),
+                TextColumn::make('created_at')->dateTime('d/m/Y H:i')->label('เวลาสร้าง')->sortable(),
             ])
-            ->filters([])
+            ->filters([
+                DateFilter::make('created_at')->label('ค้นหาตามวัน/เดือน'),
+                SelectFilter::make('status')
+                    ->label('สถานะ')
+                    ->options([
+                        'paid' => 'จ่ายแล้ว',
+                        'pending' => 'รอจ่าย',
+                        'void' => 'ยกเลิก/คืนเงิน',
+                    ]),
+            ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-            ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    ExportAction::make()->label('Export รายงาน')->fileName('qr_logs_report_'.now()->format('Ymd_His')),
+                ]),
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListPaymentQrLogs::route('/'),
-            'create' => CreatePaymentQrLog::route('/create'),
-            'edit' => EditPaymentQrLog::route('/{record}/edit'),
+            'index' => Pages\ListPaymentQrLogs::route('/'),
         ];
     }
 }
