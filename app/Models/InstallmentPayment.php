@@ -17,4 +17,9 @@ class InstallmentPayment extends Model
     public function installmentRequest() {
         return $this->belongsTo(InstallmentRequest::class, 'installment_request_id');
     }
+
+    public function qrLogs() {
+        return $this->hasMany(\App\Models\PaymentQrLog::class, 'installment_payment_id');
+    }
+
 }

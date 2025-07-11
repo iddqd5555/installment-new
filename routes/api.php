@@ -15,6 +15,7 @@ Route::post('/payment/inquiry-v4', [KBankPaymentController::class, 'inquiryV4Qr'
 Route::post('/payment/cancel-qr', [KBankPaymentController::class, 'cancelQr']);
 Route::post('/payment/void-payment', [KBankPaymentController::class, 'voidPayment']);
 
+Route::get('/gold-latest', [\App\Http\Controllers\Api\GoldPriceController::class, 'latest']);
 
 
 Route::middleware('auth:sanctum')->post('/user/update-location', [UserLocationController::class, 'updateLocation']);

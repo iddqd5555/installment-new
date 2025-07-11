@@ -1,70 +1,75 @@
 :root {
     --primary-maroon: #730A22;
+    --secondary-maroon: #a42638;
 }
 
 body {
     font-family: 'Sarabun', sans-serif;
-    background: #f7f7f7;
+    background-color: #f7f7f7;
 }
-.theme-bg { background: var(--primary-maroon) !important; }
+
+.theme-bg { background-color: var(--primary-maroon) !important; }
 .theme-color { color: var(--primary-maroon) !important; }
-.btn-theme {
+
+.btn-theme, .btn-rounded {
     background: var(--primary-maroon) !important;
     color: #fff !important;
     border-radius: 8px;
     padding: 8px 24px;
     font-weight: bold;
     border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: all 0.2s;
 }
-.feature-card, .section-card {
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 2px 16px #730A221a;
-    margin-bottom: 18px;
-    padding: 22px 26px;
-    font-weight: bold;
-    color: var(--primary-maroon);
+
+.btn-theme:hover, .btn-rounded:hover {
+    background: var(--secondary-maroon) !important;
 }
-.feature-card i {
-    font-size: 1.7em;
-    margin-right: 14px;
-}
-.section-title {
-    font-size: 1.4em;
-    font-weight: bold;
-    color: var(--primary-maroon);
-    margin: 32px 0 16px 0;
-}
-.step-circle {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--primary-maroon);
+
+.menu-link {
     color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-weight: bold;
-    font-size: 1.5em;
-    margin: 0 auto 10px auto;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: background .15s;
 }
+
+.menu-link:hover, .menu-link.active {
+    background: var(--secondary-maroon);
+}
+
 .footer {
-    background: var(--primary-maroon);
+    background-color: var(--primary-maroon);
     color: #fff;
-    padding: 32px 0 18px 0;
+    padding: 24px 0;
+    margin-top: 32px;
 }
-.footer-logo {
-    font-size: 1.2em;
-    font-weight: bold;
-    letter-spacing: 1px;
+
+.footer small {
+    display: block;
+    margin-bottom: 4px;
 }
-.bg-kplus-green,
-.text-success,
-.btn-success,
-.btn-outline-light:hover,
-.btn-outline-light,
-#mobile-menu a:hover {
-    background: var(--primary-maroon) !important;
-    color: #fff !important;
-    border-color: var(--primary-maroon) !important;
+
+.card, .section-card, .feature-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* table */
+table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background-color: #f7f7f7;
 }

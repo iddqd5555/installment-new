@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\User\InstallmentController;
+use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\InstallmentRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PaymentController;
@@ -10,6 +11,9 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\KBankTestController;
+
+// ------------------- Dashboard User (แก้ route dashboard ให้ชี้ controller ใหม่) -------------------
+Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 // ------------------- หน้าแรก/Guest -------------------
 Route::get('/', function () {
@@ -46,7 +50,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/payment-info', [BankAccountController::class, 'index'])->name('payment-info');
-    // ระบบแจ้งเตือน
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
 });
 
@@ -58,9 +61,7 @@ Route::middleware(['auth'])->group(function() {
     Route::post('/installments', [InstallmentController::class, 'store'])->name('user.installments.store');
     Route::get('/installments/{id}', [InstallmentController::class, 'show'])->name('user.installments.show');
 
-    // Dashboard/ผ่อน/จ่ายเงิน/ประวัติ QR
-    Route::get('/dashboard', [InstallmentController::class, 'dashboard'])->name('dashboard'); // <--- alias dashboard (จบ error)
-    Route::get('/user/dashboard', [InstallmentController::class, 'dashboard'])->name('user.dashboard');
+    // หน้า QR + ประวัติ QR
     Route::get('/qr-history', [InstallmentController::class, 'qrHistory'])->name('user.qr_history');
     Route::get('/installment/{id}/create-qr', [InstallmentController::class, 'createQr'])->name('user.create_qr');
 });

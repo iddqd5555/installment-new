@@ -1,24 +1,32 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-5">
+<div class="container py-4">
     <h2 class="mb-4">📞 ติดต่อเรา</h2>
-
-    <div class="card">
-        <div class="card-body">
-            <h5>ธนาคารกสิกรไทย (สำนักงานใหญ่)</h5>
-            <p>
-                📍 เลขที่ 1 ซอยราษฎร์บูรณะ 27/1 ถนนราษฎร์บูรณะ แขวงราษฎร์บูรณะ กรุงเทพฯ 10140<br>
-                📞 โทร: 02-888-8888<br>
-                📧 อีเมล: info@kasikornbank.com
-            </p>
-            <hr>
-            <h5>ฝ่ายบริการลูกค้า KPLUS</h5>
-            <p>
-                📞 โทร: 02-888-8888 กด 2<br>
-                💬 ไลน์: @KBankLive<br>
-                🌐 เว็บไซต์: <a href="https://www.kasikornbank.com">www.kasikornbank.com</a>
-            </p>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body text-center text-md-start">
+                    <h4 class="mb-3"><strong>WISDOM GOLD</strong></h4>
+                    <p class="mb-1">โทร: 081-816-8661</p>
+                    <p class="mb-1">LINE: @wisdom.gg</p>
+                    <p class="mb-1">FACEBOOK: Wisdom Gold Group</p>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <strong>บริการ</strong><br>
+                            ผ่อนทอง<br>
+                            ผ่อนเครื่องใช้ไฟฟ้า<br>
+                            ผ่อนไอโฟน
+                        </div>
+                        <div class="col-md-8">
+                            <strong>ที่อยู่/เวลาทำการ</strong><br>
+                            โทร: 081-816-8661<br>
+                            เปิดบริการทุกวัน 10:00-18:00
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

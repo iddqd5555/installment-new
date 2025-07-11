@@ -38,7 +38,7 @@
         #mobile-menu { background: #730A22; }
     </style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
 <div class="spinner-wrapper d-none" id="spinner">
     <div class="spinner-border theme-color" role="status">
@@ -127,11 +127,13 @@
     </div>
 </nav>
 
-<div class="container py-4 {{ request()->is('login') ? 'd-flex align-items-center justify-content-center flex-grow-1' : '' }}" 
-     id="content-wrapper"
-     style="{{ request()->is('login') ? 'background: linear-gradient(to bottom, #f3fcf3, #e1f7e1); min-height: calc(100vh - 120px);' : '' }}">
-    @yield('content')
-</div>
+<main class="flex-grow-1">
+    <div class="container py-4 {{ request()->is('login') ? 'd-flex align-items-center justify-content-center flex-grow-1' : '' }}" id="content-wrapper"
+        style="{{ request()->is('login') ? 'background: linear-gradient(to bottom, #f3fcf3, #e1f7e1); min-height: calc(100vh - 120px);' : '' }}">
+        @yield('content')
+    </div>
+</main>
+@include('layouts.footer')
 
 <!-- JavaScript for mobile menu -->
 <script>
@@ -168,13 +170,10 @@ if(btn && menu) {
     });
 }
 </script>
-
-<footer class="text-center py-3 footer">
-    <small>© WISDOM GOLD GROUP CO., LTD. บริษัท วิสดอม โกลด์ กรุ๊ป จำกัด</small>
-</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 @yield('scripts')
 @livewireScripts
 @filamentScripts
+@stack('scripts')
 </body>
 </html>

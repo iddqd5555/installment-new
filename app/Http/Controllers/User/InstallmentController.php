@@ -5,21 +5,28 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\InstallmentRequest;
+use App\Models\InstallmentPayment;
+use App\Models\PaymentQrLog;
 use Illuminate\Support\Facades\Auth;
 
 class InstallmentController extends Controller
 {
+    // 1. รายการคำขอผ่อนทอง (ของตัวเอง)
     public function index()
     {
-        $requests = InstallmentRequest::where('user_id', Auth::id())->get();
+        $requests = InstallmentRequest::where('user_id', Auth::id())
+            ->orderByDesc('created_at')->get();
+
         return view('user.installments.index', compact('requests'));
     }
 
+    // 2. แบบฟอร์มขอผ่อนทอง
     public function create()
     {
         return view('user.installments.create');
     }
 
+    // 3. บันทึกคำขอผ่อนทอง (user submit)
     public function store(Request $request)
     {
         $request->validate([
@@ -29,7 +36,7 @@ class InstallmentController extends Controller
             'product_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $imageName = time().'.'.$request->product_image->extension();  
+        $imageName = time().'.'.$request->product_image->extension();
         $request->product_image->storeAs('public/products', $imageName);
 
         InstallmentRequest::create([
@@ -41,61 +48,49 @@ class InstallmentController extends Controller
             'user_id' => Auth::id(),
         ]);
 
-        return redirect()->route('user.installments.index')->with('success', 'ส่งคำขอผ่อนสำเร็จ!');
+        return redirect()->route('user.installments.index')->with('success', 'ส่งคำขอผ่อนสำเร็จ! กรุณารอแอดมินตรวจสอบ');
     }
 
+    // 4. ดูรายละเอียดคำขอ
     public function show($id)
     {
         $request = InstallmentRequest::where('user_id', Auth::id())->findOrFail($id);
         return view('user.installments.show', compact('request'));
     }
 
-    public function edit($id) {
-        $installment = InstallmentRequest::findOrFail($id);
-        $goldPrices = Cache::get('gold_prices_daily');
-        return view('admin.installments.edit', compact('installment', 'goldPrices'));
-    }
+    // 5. (ไม่ต้องให้ user แก้ไข/ลบเองหลังจาก submit)
+    // public function edit() ... (ตัดออก)
+    // public function update() ... (ตัดออก)
+    // public function destroy() ... (ตัดออก)
 
-    public function update(Request $request, $id)
+    // 6. Dashboard: แสดง “งวดผ่อน” (ของตัวเอง)
+    public function dashboard()
     {
-        $installment = InstallmentRequest::findOrFail($id);
+        $user = Auth::user();
+        $payments = InstallmentPayment::whereHas('installmentRequest', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+        ->orderBy('payment_due_date', 'asc') // <-- เปลี่ยนตรงนี้ให้ตรงกับชื่อจริงในตาราง!
+        ->get();
 
-        $request->validate([
-            'product_name' => 'required|string',
-            'price' => 'required|numeric',
-            'installment_months' => 'required|integer',
-            'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $data = [
-            'product_name' => $request->product_name,
-            'price' => $request->price,
-            'installment_months' => $request->installment_months,
-        ];
-
-        if ($request->hasFile('product_image')) {
-            $imageName = time().'.'.$request->product_image->extension();
-            $request->product_image->storeAs('public/products', $imageName);
-            $data['product_image'] = $imageName;
-        }
-
-        $installment->update($data);
-
-        return redirect()->route('user.installments.index')->with('success', 'แก้ไขข้อมูลสำเร็จ!');
+        return view('user.dashboard', compact('user', 'payments'));
     }
 
-    public function destroy($id)
+    // 7. ดูประวัติ QR Payment ของตัวเอง
+    public function qrHistory()
     {
-        $installment = InstallmentRequest::findOrFail($id);
+        $user = Auth::user();
+        $logs = PaymentQrLog::where('customer_id', $user->id)->orderByDesc('created_at')->get();
 
-        // เช็คเจ้าของคำขอ
-        if (auth()->id() !== $installment->user_id) {
-            abort(403);
-        }
-
-        $installment->delete();
-
-        return redirect()->route('user.installments.index')->with('success', 'ลบคำขอผ่อนสินค้าสำเร็จ!');
+        return view('user.qr_history', compact('logs'));
     }
 
+    // 8. สร้าง QR สำหรับงวดที่ค้าง (รอเชื่อมกับ KBank จริง)
+    public function createQr($installmentPaymentId)
+    {
+        $user = Auth::user();
+        $installment = InstallmentPayment::findOrFail($installmentPaymentId);
+
+        return view('user.create_qr', compact('installment'));
+    }
 }

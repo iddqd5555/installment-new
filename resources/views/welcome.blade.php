@@ -3,50 +3,60 @@
 @section('content')
 
 {{-- Banner หลัก --}}
-<div class="theme-bg text-white py-5">
-    <div class="container text-center">
-        <h1 class="display-4 fw-bold">บัตรประชาชนใบเดียว ก็ผ่อนได้</h1>
-        <div class="lead mb-2" style="font-size:1.2em;">ไม่เช็คแบล็คลิสต์ ไม่เช็คบูโร ไม่ใช้คนค้ำ</div>
-        <a href="{{ route('gold.index') }}" class="btn btn-light btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
+<div class="container-section">
+    <div class="theme-bg text-white py-5 banner-curve-all">
+        <div class="text-center">
+            <h1 class="display-4 fw-bold">บัตรประชาชนใบเดียว ก็ผ่อนได้</h1>
+            <div class="lead mb-2 fs-5">ไม่เช็คแบล็คลิสต์ ไม่เช็คบูโร ไม่ใช้คนค้ำ</div>
+            <a href="{{ route('gold.index') }}" class="btn btn-theme btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
+        </div>
     </div>
 </div>
 
 {{-- ตารางราคารับจำนำ --}}
-<div class="container py-4">
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-                <i class="bi bi-table theme-color fs-4"></i>
-                <span class="fs-5 fw-bold ms-2">ราคารับจำนำประจำสัปดาห์สำหรับลูกค้า</span>
-            </div>
-            <table class="table table-bordered text-center">
-                <thead class="theme-bg text-white">
-                    <tr>
-                        <th>ชนิดทอง</th>
-                        <th>รับจำนำ</th>
-                        <th>ขายคืน</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>ทองคำแท่ง 96.5%</td>
-                        <td>35,000</td>
-                        <td>36,000</td>
-                    </tr>
-                    <tr>
-                        <td>ทองรูปพรรณ 96.5%</td>
-                        <td>34,400</td>
-                        <td>35,500</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="text-muted" style="font-size: 13px;">ณ วันที่ 7 กรกฎาคม 2566</div>
+<div class="container-section gold-main-section">
+    <div class="gold-box">
+        <div class="gold-header">
+            <img src="https://www.goldtraders.or.th/images/logoGT.png" style="height:40px;margin-right:8px;vertical-align:middle;">
+            ราคาทองตามประกาศสมาคมค้าทองคำ
+        </div>
+        <table class="gold-table" id="goldPriceTable">
+            <thead>
+                <tr>
+                    <th class="type">96.5%</th>
+                    <th class="buy">รับซื้อ</th>
+                    <th class="sell">ขายออก</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="type text-start">ทองคำแท่ง</td>
+                    <td id="gold-bar-buy" class="price"></td>
+                    <td id="gold-bar-sell" class="price"></td>
+                </tr>
+                <tr>
+                    <td class="type text-start">ทองรูปพรรณ</td>
+                    <td id="gold-jewelry-buy" class="price"></td>
+                    <td id="gold-jewelry-sell" class="price"></td>
+                </tr>
+                <tr class="change-row">
+                    <td class="type text-danger text-center" style="font-weight:bold;">
+                        วันนี้ <span id="gold-today-arrow">▼</span>
+                        <span id="gold-today-buy-change" class="text-danger"></span>
+                    </td>
+                    <td class="buy text-danger" id="gold-today-buy" style="font-weight:bold;"></td>
+                    <td class="sell text-danger" id="gold-today-sell" style="font-weight:bold;"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="gold-footer">
+            <span id="goldPriceDate">-</span>
         </div>
     </div>
 </div>
 
 {{-- จุดเด่น --}}
-<div class="container mb-3">
+<div class="container-section">
     <div class="row text-center g-3">
         <div class="col-md-3 col-6">
             <div class="feature-card"><i class="bi bi-person-badge"></i> บัตรประชาชนใบเดียว</div>
@@ -64,8 +74,8 @@
 </div>
 
 {{-- รีวิวลูกค้าจริง --}}
-<div class="container">
-    <div class="section-title">รีวิวบ้างส่วนจากลูกค้าจริง</div>
+<div class="container-section">
+    <div class="section-title">รีวิวบางส่วนจากลูกค้าจริง</div>
     <div class="row g-3">
         @for($i=1;$i<=4;$i++)
         <div class="col-md-3 col-6">
@@ -80,7 +90,7 @@
 </div>
 
 {{-- ขั้นตอนการสมัคร --}}
-<div class="container my-5">
+<div class="container-section">
     <div class="section-title">ขั้นตอนการสมัครผ่อนทอง</div>
     <div class="row text-center mb-4">
         <div class="col-md-4 mb-3">
@@ -102,7 +112,7 @@
 </div>
 
 {{-- คุณสมบัติและเอกสาร --}}
-<div class="container">
+<div class="container-section">
     <div class="row g-3">
         <div class="col-md-6">
             <div class="section-title">คุณสมบัติผู้สมัคร</div>
@@ -131,7 +141,7 @@
 </div>
 
 {{-- พื้นที่ให้บริการ --}}
-<div class="container py-3">
+<div class="container-section">
     <div class="section-title">พื้นที่ให้บริการ</div>
     <div class="section-card">
         <ul class="mb-0">
@@ -145,7 +155,7 @@
 </div>
 
 {{-- FAQ --}}
-<div class="container pb-3">
+<div class="container-section">
     <div class="section-title">คำถามที่พบบ่อย (FAQ)</div>
     <div class="accordion" id="faqAccordion">
         @php
@@ -173,7 +183,7 @@
 </div>
 
 {{-- ฟอร์มขอผ่อนทอง --}}
-<div class="container pb-3">
+<div class="container-section">
     <div class="section-title">แบบฟอร์มขอผ่อนทอง</div>
     <div class="section-card">
         <form>
@@ -194,47 +204,36 @@
     </div>
 </div>
 
-{{-- Footer --}}
-<footer class="footer mt-5">
-    <div class="container">
-        <div class="row g-3">
-            <div class="col-md-4 mb-3">
-                <div class="footer-logo mb-2">WISDOM GOLD</div>
-                <div>โทร: 081-816-8661</div>
-                <div>LINE: @wisdom.gg</div>
-                <div>FACEBOOK : Wisdom Gold Group</div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="fw-bold mb-2">บริการ</div>
-                <div>ผ่อนทอง</div>
-                <div>ผ่อนเครื่องใช้ไฟฟ้า</div>
-                <div>ผ่อนไอโฟน</div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="fw-bold mb-2">ติดต่อเรา</div>
-                <div>โทร: 081-816-8661</div>
-                <div>เปิดบริการทุกวัน 10:00-18:00</div>
-            </div>
-        </div>
-        <div class="text-center mt-4" style="font-size:12px;">© สงวนลิขสิทธิ์ บริษัท วิสดอม โกลด์ กรุ๊ป</div>
-    </div>
-</footer>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/gold-latest')
+        .then(res => res.json())
+        .then(data => {
+            console.log("gold-latest data:", data); // DEBUG
+            document.getElementById('gold-bar-buy').innerText = Number(data.gold_bar_buy).toLocaleString();
+            document.getElementById('gold-bar-sell').innerText = Number(data.gold_bar_sell).toLocaleString();
+            document.getElementById('gold-jewelry-buy').innerText = Number(data.gold_jewelry_buy).toLocaleString();
+            document.getElementById('gold-jewelry-sell').innerText = Number(data.gold_jewelry_sell).toLocaleString();
 
-@push('styles')
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-    body { font-family: 'Sarabun', sans-serif; background: #f7f7f7; }
-    .theme-bg { background: #730A22 !important; }
-    .theme-color { color: #730A22 !important; }
-    .btn-theme { background: #730A22; color: #fff; border-radius: 8px; padding: 8px 24px; font-weight: bold; }
-    .feature-card, .section-card { background: #fff; border-radius: 18px; box-shadow: 0 2px 16px #730A221a; margin-bottom: 18px; padding: 22px 26px; font-weight: bold; color: #730A22; }
-    .feature-card i { font-size: 1.7em; margin-right: 14px; }
-    .section-title { font-size: 1.4em; font-weight: bold; color: #730A22; margin: 32px 0 16px 0; }
-    .step-circle { width: 52px; height: 52px; border-radius: 50%; background: #730A22; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.5em; margin: 0 auto 10px auto; }
-    .footer { background: #730A22; color: #fff; padding: 32px 0 18px 0; }
-    .footer-logo { font-size: 1.2em; font-weight: bold; letter-spacing: 1px; }
-</style>
+            let arrow = parseFloat(data.change_buy) < 0 ? '▼' : '▲';
+            let color = parseFloat(data.change_buy) < 0 ? 'red' : 'green';
+            document.getElementById('gold-today-arrow').innerText = arrow;
+            document.getElementById('gold-today-arrow').style.color = color;
+            document.getElementById('gold-today-buy-change').innerText = data.change_buy ?? '';
+            document.getElementById('gold-today-buy').innerHTML = arrow + " " + (data.change_buy ?? '');
+            document.getElementById('gold-today-buy').style.color = color;
+            document.getElementById('gold-today-sell').innerHTML = arrow + " " + (data.change_sell ?? '');
+            document.getElementById('gold-today-sell').style.color = color;
+
+            document.getElementById('goldPriceDate').innerText = data.last_update ?? '';
+        })
+        .catch(e => {
+            document.getElementById('goldPriceDate').innerText = 'ไม่สามารถโหลดราคาทองได้';
+            console.error("Fetch gold error:", e);
+        });
+});
+</script>
 @endpush
 
 @endsection

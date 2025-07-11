@@ -1,224 +1,321 @@
+:root {
+    --primary-maroon: #730A22;
+    --secondary-maroon: #a42638;
+    --bg-light: #f4f8fb;
+    --white: #fff;
+    --shadow-soft: 0 4px 24px 0 rgba(44,62,80,.09), 0 1.5px 4px 0 rgba(44,62,80,.07);
+    --radius-inner: 22px;
+    --radius-btn: 28px;
+}
+
 html, body {
     height: 100%;
 }
 
 body {
-    font-family: 'Prompt', sans-serif;
-    background-color: #f4f8fb;
+    font-family: 'Prompt', 'Sarabun', sans-serif;
+    background-color: var(--bg-light);
     color: #343a40;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-/* ลบ flexbox ออกเพื่อคืน layout เดิม */
-#content-wrapper {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+/* Navbar/Theme/FOOTER = ไม่มีขอบมน ชิดขอบจอ */
+.theme-bg, nav, footer.footer {
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 4px 32px 0 rgba(44,62,80,.03);
+}
+footer.footer {
+    background-color: var(--primary-maroon);
+    color: #fff;
+    padding: 38px 0 14px 0;
+    width: 100%;
+    font-size: 1.05em;
+    border-radius: 0 !important;
+}
+footer .row > div {
+    margin-bottom: 12px;
+}
+footer .text-center {
+    font-size: 14px;
+    margin-top: 14px;
 }
 
-footer {
-    background-color: #f8f9fa;
-    padding: 1rem;
+/* Card style modern */
+.card, .card-header, .section-card, .feature-card, .faq-item, section, table, .table {
+    background-color: var(--white);
+    border-radius: var(--radius-inner) !important;
+    box-shadow: var(--shadow-soft);
+    border: none;
+    margin-bottom: 22px;
+    transition: box-shadow 0.2s, border-radius 0.2s;
 }
-
-.footer-text small {
-    white-space: nowrap;
-    font-size: 11px; /* ลดขนาดตัวอักษรให้เล็กลงได้อีกตามต้องการ */
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis; /* กรณีที่ต้องการให้ตัดข้อความยาวแล้วใส่ ... */
+.card-header {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
 }
-
-.bg-kplus-green {
-    background-color: #0aad3f !important;
-    border-radius: 0 0 20px 20px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+.card:hover, .section-card:hover, .feature-card:hover, .faq-item:hover {
+    box-shadow: 0 8px 32px 0 rgba(44,62,80,.11), 0 3px 8px 0 rgba(44,62,80,.07);
 }
-
-.nav-shadow {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-nav {
-    position: relative;
-}
-
-nav .text-lg {
+.feature-card {
+    color: var(--primary-maroon);
+    font-weight: bold;
+    font-size: 1.09em;
     text-align: center;
-    flex-grow: 1;
+    margin-bottom: 13px;
+    padding: 20px 8px 18px 8px;
+    border-radius: var(--radius-inner) !important;
+}
+.feature-card i {
+    font-size: 2.15em;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+.section-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--primary-maroon);
+    margin: 32px 0 15px 0;
 }
 
-/* ลบ underline ของลิงค์ทั้งหมด */
-a {
-    text-decoration: none !important;
+/* Form/Btn */
+.btn-theme, .btn-rounded {
+    background: linear-gradient(90deg, var(--primary-maroon) 70%, var(--secondary-maroon));
+    color: #fff !important;
+    border: none;
+    border-radius: var(--radius-btn) !important;
+    padding: 12px 38px;
+    font-weight: bold;
+    box-shadow: 0 2px 16px 0 rgba(44,62,80,.09);
+    transition: background 0.2s, transform 0.2s;
+}
+.btn-theme:hover, .btn-rounded:hover {
+    background: linear-gradient(90deg, var(--secondary-maroon), var(--primary-maroon) 80%);
+    color: #fff !important;
+    transform: translateY(-2px) scale(1.04);
 }
 
-/* ตั้งค่าเมนูมือถือให้มีการแสดงผลที่ชัดเจน */
+.btn-logout {
+    background-color: #ff3c41 !important;
+    color: #fff !important;
+    font-weight: bold;
+    border-radius: var(--radius-btn) !important;
+}
+
+/* Navbar/Link */
+.menu-link {
+    color: #fff;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: var(--radius-btn);
+    transition: background .18s, color .18s;
+    margin: 0 3px;
+    box-shadow: 0 2px 12px 0 rgba(44,62,80,.04);
+}
+.menu-link:hover, .menu-link.active {
+    background: var(--secondary-maroon);
+    color: #fff;
+}
+.theme-color { color: var(--primary-maroon) !important; }
+
+/* Table */
+th, td {
+    padding: 15px 13px;
+    border-bottom: 1px solid #e9eaf0 !important;
+    border-top: none;
+    vertical-align: middle !important;
+}
+th {
+    background-color: #f7f7f7;
+    font-weight: bold;
+}
+tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Accordion, FAQ, Section */
+.faq-item, section {
+    background-color: #fff;
+    padding: 22px 18px 16px 18px;
+    border-radius: var(--radius-inner) !important;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 16px;
+}
+.collapse .card.card-body {
+    background-color: #fff !important;
+    color: #343a40 !important;
+    padding: 16px 18px !important;
+    border-radius: var(--radius-inner) !important;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.07) !important;
+}
+ul { list-style-type: disc; padding-left: 22px; }
+
+/* เมนูมือถือ */
 #mobile-menu {
     overflow: hidden;
     height: 0;
     transition: height 0.4s ease;
+    border-radius: var(--radius-inner);
+    box-shadow: var(--shadow-soft);
+    margin-top: 8px;
+    background: var(--primary-maroon);
 }
-
 #mobile-menu.active {
     height: auto;
-    max-height: 1000px; /* ตั้งให้มากพอครอบคลุมข้อความทั้งหมด */
+    max-height: 1000px;
 }
 
+/* Button in mobile */
 #mobile-menu-btn {
     border: none;
     outline: none;
     background: transparent;
     color: white;
-    font-size: 24px;
+    font-size: 27px;
+    border-radius: 50%;
+    transition: background 0.18s, transform 0.18s;
 }
-
 #mobile-menu-btn:hover {
-    transform: scale(1.1);
+    background: var(--secondary-maroon);
+    transform: scale(1.12);
 }
 
-.menu-link {
-    display: block;
-    padding: 10px 15px;
-    color: white;
-    transition: background-color 0.2s;
-}
-
-.menu-link:hover, .menu-link.active {
-    background-color: #099c38;
-}
-
-.btn-rounded {
-    border-radius: 20px;
-    padding: 6px 12px;
-    color: #333;
-    border: none;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: transform 0.2s, background-color 0.3s;
-}
-
-.btn-rounded:hover {
-    background-color: #099c38;
-    transform: scale(1.05);
-}
-
-.card, .card-header {
-    border-radius: 15px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border: none;
-}
-
-
-/* ปรับปรุงปุ่มออกจากระบบให้ชัดเจน อ่านง่าย */
-.btn-logout {
-    background-color: #ff3c41 !important;
-    color: white !important;
-    font-weight: bold;
-}
-
-/* แก้การจัดวางสถานะเครดิตและยืนยันตัวตนใน desktop */
-
-/* ปรับขนาด badge ให้เหมาะสม */
 .credit-status-desktop .badge {
-    font-size: 0.75rem;
-    padding: 4px 8px;
+    font-size: 0.87rem;
+    padding: 6px 16px;
+    border-radius: 15px;
+    font-weight: 500;
+    margin-top: 3px;
+    background: #fff2;
 }
 
-#desktop-menu {
-    padding-right: 200px; /* เว้นระยะห่างให้เพียงพอไม่ทับกัน */
+/* --- Responsive --- */
+@media (max-width: 1100px) {
+    .card, .section-card, .feature-card, .faq-item, section, table, .table { border-radius: 16px !important; }
 }
-
-/* แก้ไข responsive ของ desktop-menu ในช่วง tablet */
-@media (max-width: 992px) and (min-width: 769px) {
-    #desktop-menu {
-        gap: 8px !important;
-    }
-
-    .menu-link {
-        padding: 4px 8px !important;
-    }
-
-    .btn-rounded {
-        font-size: 0.8rem !important;
-    }
-
-    .credit-status-desktop {
-        position: absolute;
-        top: 50%;
-        right: 20px;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        z-index: 9999;
-    }
-
-    #desktop-menu {
-        padding-right: 220px !important; /* ให้มีพื้นที่เพียงพอ */
-    }
+@media (max-width: 992px) {
+    .section-card, .feature-card, .card { border-radius: 13px !important; }
+    .section-title { font-size: 1.08em; }
+    .footer { padding: 20px 0 7px 0; font-size: 0.97em;}
+    .menu-link { padding: 9px 9px; border-radius: 10px;}
 }
-
-/* Responsive Navbar adjustments */
 @media (max-width: 768px) {
-    nav .container {
-        flex-direction: row !important;
-        align-items: center;
-        justify-content: space-between !important;
+    main.flex-grow-1, .container { padding-left: 3px; padding-right: 3px;}
+    .footer { font-size: 0.93em; }
+    footer .row > div { margin-bottom: 8px;}
+    /* Footer: จัด 3 คอลัมน์ เรียงแนวนอนแบบ desktop บนมือถือ */
+    footer .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        align-items: flex-start !important;
     }
-
-    nav .text-lg {
-        text-align: left;
-        font-size: 1rem;
-    }
-    .credit-status-desktop .badge {
-        font-size: 0.7rem !important;
-    }
-
-    /* ซ่อน Badge ที่ซ้ำซ้อนในเมนูมือถือ */
-    #mobile-menu .badge {
-        display: none !important;
-    }
-
-    /* ปรับ padding ด้านบนของเมนูมือถือเพื่อเว้นช่องว่างให้ Badge */
-    #mobile-menu {
-        padding-top: 20px !important;
+    footer .row > div {
+        width: 33.33% !important;
+        text-align: center !important;
+        min-width: 140px;
     }
 }
 
 .faq-item {
     background-color: #fff;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 15px;
+    padding: 16px;
+    border-radius: var(--radius-inner) !important;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 13px;
 }
-
-ul {
-    list-style-type: disc;
-    padding-left: 20px;
-}
-
 section {
     padding: 20px;
-    background-color: #f9fafb;
-    border-radius: 15px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    background-color: #fff;
+    border-radius: var(--radius-inner) !important;
+    box-shadow: var(--shadow-soft);
+}
+.collapse { visibility: visible !important; }
+
+.gold-box {
+    margin-top: 36px !important;  /* <--- เพิ่มบรรทัดนี้ */
+    background: #fffbe6;
+    border-radius: 16px;
+    box-shadow: 0 2px 14px rgba(44,62,80,0.09), 0 1.5px 4px rgba(44,62,80,0.05);
+    border: 3px solid #f9c200;
+    overflow: hidden;
+    padding: 0;
+    width: 100% !important;
+    display: block;
+    box-sizing: border-box;
+    margin-bottom: 22px !important;
 }
 
-.collapse .card.card-body {
-    background-color: #ffffff !important;
-    color: #343a40 !important;
-    padding: 15px !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-}
 
-.collapse .card.card-body .form-label,
-.collapse .card.card-body input,
-.collapse .card.card-body button {
-    color: #343a40 !important;
+.gold-header {
+    background: #f9c200;
+    color: #80171c;
+    font-weight: bold;
+    font-size: 1.07em;
+    text-align: left;
+    padding: 10px 16px 8px 12px;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #e2b002;
 }
-
-.collapse {
-    visibility: visible !important;
+.gold-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0 0 16px 16px;
+    background: #fffbe6;
+}
+.gold-table th, .gold-table td {
+    padding: 12px 6px;
+    text-align: center;
+    border: none;
+}
+.gold-table th.type {
+    background: #fffbe6;
+    color: #80171c;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-right: 1px solid #fff8c8;
+}
+.gold-table th.buy, .gold-table th.sell {
+    background: #80171c;
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+.gold-table td.type {
+    font-size: 1.08em;
+    color: #80171c;
+    font-weight: 500;
+    background: #fffbe6;
+}
+.gold-table td.price {
+    font-size: 1.23em;
+    font-weight: bold;
+    color: #e13029;
+    background: #fff;
+    border-left: 1.5px solid #f9c200;
+    border-right: 1.5px solid #f9c200;
+}
+.gold-table tr.change-row td {
+    background: #fffbe6;
+    color: #e13029;
+    font-size: 1em;
+    font-weight: bold;
+    padding-bottom: 2px;
+    border-top: 2px solid #f9c200;
+}
+.gold-footer {
+    font-size: 0.97em;
+    color: #464646;
+    text-align: right;
+    background: #fffbe6;
+    padding: 7px 16px 9px 0;
+    border-top: 1px solid #f3d764;
+}
+@media (max-width:600px){
+    .gold-box { max-width: 99vw; border-radius: 10px; }
+    .gold-table, .gold-table th, .gold-table td { font-size: 0.97em; }
 }
