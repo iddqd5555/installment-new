@@ -8,6 +8,12 @@ use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\UserLocationController;
 use App\Http\Controllers\KBankPaymentController;
+use App\Http\Controllers\InstallmentPaymentController;
+
+Route::post('/installment/pay', [InstallmentPaymentController::class, 'pay']);
+Route::get('/installment/overdue', [InstallmentPaymentController::class, 'overdue']);
+Route::get('/installment/history', [InstallmentPaymentController::class, 'history']);
+
 
 Route::post('/payment/qr', [KBankPaymentController::class, 'generateQr']);
 Route::get('/payment/qr-status/{qrRef}', [KBankPaymentController::class, 'checkQrStatus']);

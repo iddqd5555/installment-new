@@ -11,6 +11,10 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\KBankTestController;
+use App\Http\Controllers\SlipPaymentController;
+
+Route::post('/slip-payment', [SlipPaymentController::class, 'upload']);
+
 
 // ------------------- Dashboard User (แก้ route dashboard ให้ชี้ controller ใหม่) -------------------
 Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
