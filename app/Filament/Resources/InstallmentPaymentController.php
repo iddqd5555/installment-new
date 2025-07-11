@@ -27,27 +27,39 @@ class InstallmentPaymentController extends Controller
 
         $imgPath = null;
         if ($request->hasFile('slip')) {
-            $imgPath = $request->file('slip')->store('slips');
-        }
+            $file = $request->file('slip');
+            $imgPath = $file->store('slips');
+            $imgHash = md5_file($file->getRealPath());
 
-        $totalPaid = $request->amount_paid;
-        $dates = $request->pay_for_dates; // array เช่น ['2025-07-09', '2025-07-10']
-
-        foreach ($dates as $date) {
-            $payment = InstallmentPayment::where('installment_request_id', $installment->id)
-                ->whereDate('payment_due_date', $date)
+            $dup = InstallmentPayment::where('installment_request_id', $installment->id)
+                ->where('slip_hash', $imgHash)
                 ->first();
+            if ($dup) {
+                return response()->json(['success' => false, 'error' => 'สลิปนี้ถูกอัปโหลดไปแล้ว'], 409);
+            }
 
-            if ($payment && $payment->status !== 'paid') {
-                $pay = min($payment->amount, $totalPaid);
-                $payment->amount_paid += $pay;
-                $payment->payment_status = ($payment->amount_paid >= $payment->amount) ? 'paid' : 'pending';
-                $payment->status = ($payment->amount_paid >= $payment->amount) ? 'approved' : 'pending';
-                $payment->payment_proof = $imgPath;
-                $payment->save();
+            // --- อ่าน QR ผ่าน Python ---
+            $qrText = $this->readQrFromSlip(storage_path('app/'.$imgPath));
 
-                $totalPaid -= $pay;
-                if ($totalPaid <= 0) break;
+            // ===== แก้ตรงนี้ =====
+            // เพิ่ม array สำหรับ whitelist เลขบัญชีบริษัท
+            $companyAccounts = [
+                '8651008116', // เดิม: 865-1-00811-6 (บัญชีบริษัทหลัก)
+                '0021503541', // ใหม่: 002-1-503541 (กสิกร สุรเชษฐ์ หงษ์ทอง)
+                // เพิ่มบัญชีอื่นที่อนุมัติได้ในอนาคต
+            ];
+            $foundAcc = false;
+            if ($qrText) {
+                $qrTextDigits = preg_replace('/\D/', '', $qrText);
+                foreach ($companyAccounts as $acc) {
+                    if (strpos($qrTextDigits, $acc) !== false) {
+                        $foundAcc = true;
+                        break;
+                    }
+                }
+            }
+            if ($qrText && !$foundAcc) {
+                return response()->json(['success' => false, 'error' => 'QR ในสลิปไม่ใช่เลขบัญชีบริษัท'], 422);
             }
         }
 

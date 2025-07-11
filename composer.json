@@ -22,7 +22,8 @@
         "laravel/tinker": "^2.10.1",
         "phpoffice/phpspreadsheet": "^4.4",
         "symfony/css-selector": "^7.3",
-        "symfony/dom-crawler": "^7.3"
+        "symfony/dom-crawler": "^7.3",
+        "symfony/process": "^7.3"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

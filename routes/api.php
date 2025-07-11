@@ -14,6 +14,15 @@ Route::post('/installment/pay', [InstallmentPaymentController::class, 'pay']);
 Route::get('/installment/overdue', [InstallmentPaymentController::class, 'overdue']);
 Route::get('/installment/history', [InstallmentPaymentController::class, 'history']);
 
+// API บัญชีปลายทางบริษัท
+Route::get('/company-bank', function () {
+    return [
+        'bank' => 'กสิกรไทย',
+        'number' => '865-1-00811-6',
+        'name' => 'บริษัท วิสดอม โกลด์ กรุ้ป จำกัด',
+    ];
+});
+
 
 Route::post('/payment/qr', [KBankPaymentController::class, 'generateQr']);
 Route::get('/payment/qr-status/{qrRef}', [KBankPaymentController::class, 'checkQrStatus']);
