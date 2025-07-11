@@ -10,8 +10,10 @@ class InstallmentPayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'installment_request_id', 'amount', 'amount_paid', 'status', 'payment_status',
-        'payment_proof', 'payment_due_date', 'fine'
+        'installment_request_id', 'amount', 'amount_paid',
+        'payment_status', 'status', 'admin_notes',
+        'payment_proof', 'payment_due_date', 'ref',
+        'slip_hash', 'slip_qr_text', // เพิ่มฟิลด์นี้
     ];
 
     public function installmentRequest() {
@@ -21,5 +23,4 @@ class InstallmentPayment extends Model
     public function qrLogs() {
         return $this->hasMany(\App\Models\PaymentQrLog::class, 'installment_payment_id');
     }
-
 }
