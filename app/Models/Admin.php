@@ -49,4 +49,10 @@ class Admin extends Authenticatable implements FilamentUser
     {
         return auth('admin')->check();
     }
+
+    public function commissions()
+    {
+        return $this->hasMany(Commission::class);
+    }
+
 }

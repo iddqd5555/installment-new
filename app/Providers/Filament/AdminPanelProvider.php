@@ -19,6 +19,8 @@ use App\Filament\Widgets\FinancialReportWidget;
 use App\Filament\Resources\DailyReportResource;
 use App\Filament\Resources\DailyReportResource\Widgets\DailyReportOverview;
 use App\Filament\Resources\UserTrackingResource;
+use App\Filament\Resources\CommissionResource;
+
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -43,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
                 DailyReportResource::class,
                 UserTrackingResource::class,
                 PaymentQrLogResource::class, // <<-- เพิ่มอันนี้เข้าไป
+                CommissionResource::class,
             ])
             ->pages([
                 Dashboard::class,

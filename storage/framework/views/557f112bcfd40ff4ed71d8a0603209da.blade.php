@@ -1,6 +1,6 @@
 <?php extract((new \Illuminate\Support\Collection($attributes->getAttributes()))->mapWithKeys(function ($value, $key) { return [Illuminate\Support\Str::camel(str_replace([':', '.'], ' ', $key)) => $value]; })->all(), EXTR_SKIP); ?>
-@props(['entry'])
-<x-filament-infolists::entry-wrapper :entry="$entry" >
-
+@props(['field','hasInlineLabel'])
+<x-filament-forms::field-wrapper :field="$field" :has-inline-label="$hasInlineLabel" >
+<x-slot name="label" class="">{{ $label }}</x-slot>
 {{ $slot ?? "" }}
-</x-filament-infolists::entry-wrapper>
+</x-filament-forms::field-wrapper>

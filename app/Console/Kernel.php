@@ -7,7 +7,7 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Models\InstallmentRequest;
 use App\Models\InstallmentPayment;
 use App\Notifications\InstallmentDueReminderNotification;
-use App\Notifications\PenaltyNotification; // ✅ เพิ่มตรงนี้ชัดเจน
+use App\Notifications\PenaltyNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // ✅ แจ้งเตือนก่อนครบกำหนดชำระ (ไม่ต้องแก้ไข)
+        // แจ้งเตือนก่อนครบกำหนดชำระ
         $schedule->call(function () {
             $reminderDate = Carbon::now()->addDays(3)->startOfDay();
 
@@ -34,7 +34,7 @@ class Kernel extends ConsoleKernel
             }
         })->daily();
 
-        // ✅ ดึงราคาทองคำ (ไม่ต้องแก้ไข)
+        // ดึงราคาทองคำ
         $schedule->call(function () {
             try {
                 $response = Http::get('https://www.goldtraders.or.th/default.aspx?tabid=93&language=th-TH');
@@ -58,7 +58,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('09:00');
 
-        // 🔥 Scheduler คำนวณค่าปรับอัตโนมัติและจัดการ advance payment
+        // Scheduler คำนวณค่าปรับอัตโนมัติและจัดการ advance payment
         $schedule->call(function () {
             $installments = InstallmentRequest::where('status', 'approved')->get();
 
@@ -72,7 +72,6 @@ class Kernel extends ConsoleKernel
                     ->sum('amount_paid') + $installment->advance_payment;
 
                 if ($totalPaid < $totalShouldPay) {
-                    // สร้างรายการค่าปรับชัดเจน
                     InstallmentPayment::create([
                         'installment_request_id' => $installment->id,
                         'amount' => 100,
@@ -83,7 +82,6 @@ class Kernel extends ConsoleKernel
                         'admin_notes' => 'ค่าปรับอัตโนมัติ (ชำระไม่ครบยอดสะสม)',
                     ]);
 
-                    // ✅ เพิ่ม notification แจ้งเตือน penalty ให้ผู้ใช้งานทันที
                     $installment->user->notify(new PenaltyNotification(100));
                 }
 
@@ -97,6 +95,9 @@ class Kernel extends ConsoleKernel
                 $installment->save();
             }
         })->dailyAt('23:59');
+
+        // ✅ คำสั่งคำนวณค่าคอมมิชชันของคุณ (เพิ่มใหม่ที่นี่)
+        $schedule->command('commission:calculate')->dailyAt('23:59');
     }
 
     protected function commands(): void
