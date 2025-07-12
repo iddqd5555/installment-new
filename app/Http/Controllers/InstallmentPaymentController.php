@@ -5,21 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\InstallmentRequest;
 use App\Models\InstallmentPayment;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class InstallmentPaymentController extends Controller
 {
+    /**
+     * POST /api/installment/pay (ออโต้ approve ทั้งเต็มงวดและบางส่วน)
+     */
     public function pay(Request $request)
     {
         $request->validate([
             'installment_request_id' => 'required|integer',
             'amount_paid' => 'required|numeric',
             'pay_for_dates' => 'required|array',
-            'slip' => 'nullable|image|max:5120',
+            'slip' => 'nullable|image',
         ]);
 
         $installment = InstallmentRequest::findOrFail($request->installment_request_id);
@@ -27,11 +25,14 @@ class InstallmentPaymentController extends Controller
         $imgPath = null;
         $imgHash = null;
         $qrText = null;
+        $foundAcc = false;
+
         if ($request->hasFile('slip')) {
             $file = $request->file('slip');
             $imgPath = $file->store('slips');
             $imgHash = md5_file($file->getRealPath());
 
+            // กันอัพสลิปซ้ำ
             $dup = InstallmentPayment::where('installment_request_id', $installment->id)
                 ->where('slip_hash', $imgHash)
                 ->first();
@@ -39,10 +40,21 @@ class InstallmentPaymentController extends Controller
                 return response()->json(['success' => false, 'error' => 'สลิปนี้ถูกอัปโหลดไปแล้ว'], 409);
             }
 
-            // --- อ่าน QR ผ่าน Python ---
-            $qrText = $this->readQrFromSlip(storage_path('app/'.$imgPath));
-            $companyAcc = '8651008116';
-            $foundAcc = $qrText && str_contains(preg_replace('/\D/', '', $qrText), $companyAcc);
+            // อ่าน QR
+            $qrText = $this->readQrFromSlip(storage_path('app/' . $imgPath));
+
+            // เลขบัญชีบริษัทที่ยอมรับ
+            $companyAccounts = ['8651008116', '0021503541'];
+
+            if ($qrText) {
+                $qrTextDigits = preg_replace('/\D/', '', $qrText);
+                foreach ($companyAccounts as $acc) {
+                    if (strpos($qrTextDigits, $acc) !== false) {
+                        $foundAcc = true;
+                        break;
+                    }
+                }
+            }
 
             if ($qrText && !$foundAcc) {
                 return response()->json(['success' => false, 'error' => 'QR ในสลิปไม่ใช่เลขบัญชีบริษัท'], 422);
@@ -60,13 +72,26 @@ class InstallmentPaymentController extends Controller
             if ($payment && $payment->status !== 'paid') {
                 $pay = min($payment->amount - $payment->amount_paid, $totalPaid);
                 $payment->amount_paid += $pay;
-                $payment->payment_status = ($payment->amount_paid >= $payment->amount) ? 'pending' : 'pending';
-                $payment->status = ($payment->amount_paid >= $payment->amount) ? 'pending' : 'pending';
                 $payment->payment_proof = $imgPath;
                 $payment->slip_hash = $imgHash;
                 $payment->slip_qr_text = $qrText;
-                $payment->save();
 
+                // แก้ logic ใหม่: auto approve ทันทีถ้า QR ถูก ไม่ว่าจ่ายเต็มหรือบางส่วน
+                if ($foundAcc) {
+                    if ($payment->amount_paid >= $payment->amount) {
+                        $payment->status = 'approved';
+                        $payment->payment_status = 'paid';
+                        $payment->paid_at = now();
+                    } else {
+                        $payment->status = 'partial_paid'; // สถานะใหม่: จ่ายบางส่วน
+                        $payment->payment_status = 'partial';
+                    }
+                } else {
+                    $payment->status = 'pending';
+                    $payment->payment_status = 'pending';
+                }
+
+                $payment->save();
                 $totalPaid -= $pay;
                 if ($totalPaid <= 0) break;
             }
@@ -82,7 +107,7 @@ class InstallmentPaymentController extends Controller
 
     private function readQrFromSlip($filePath)
     {
-        $process = new Process(['python', base_path('read_qr.py'), $filePath]);
+        $process = new \Symfony\Component\Process\Process(['python', base_path('read_qr.py'), $filePath]);
         $process->run();
 
         if (!$process->isSuccessful()) {

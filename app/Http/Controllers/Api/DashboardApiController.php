@@ -2,51 +2,65 @@
 
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\InstallmentRequest;
-use Illuminate\Support\Carbon;
+use App\Models\InstallmentPayment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardApiController extends Controller
 {
     public function dashboardData(Request $request)
     {
-        $user = $request->user();
+        $user = Auth::user();
 
-        $installment = InstallmentRequest::with('installmentPayments')
-            ->where('user_id', $user->id)
+        // ดึง Installment ล่าสุดของ User
+        $installment = InstallmentRequest::where('user_id', $user->id)
             ->where('status', 'approved')
-            ->latest('first_approved_date')
+            ->latest()
             ->first();
 
         if (!$installment) {
-            return response()->json([]);
+            return response()->json(['error' => 'No active installment found'], 404);
         }
 
-        $firstApprovedDate = $installment->first_approved_date ?? $installment->start_date;
-        $today = Carbon::today();
+        // ดึง payment ล่าสุด
+        $payments = InstallmentPayment::where('installment_request_id', $installment->id)
+            ->orderBy('payment_due_date')
+            ->get();
+
+        $nextPayment = $payments->firstWhere('status', 'pending');
 
         return response()->json([
-            'gold_amount' => number_format($installment->gold_amount, 2),
-            'total_paid' => number_format($installment->total_paid, 2),
-            'total_installment_amount' => number_format($installment->total_with_interest, 2),
-            'due_today' => number_format(
-                $installment->installmentPayments
-                    ->filter(fn($p) => \Carbon\Carbon::parse($p->payment_due_date)->isSameDay($today))
-                    ->sum('amount'), 2),
-            'advance_payment' => number_format($installment->advance_payment, 2),
-            'total_penalty' => number_format($installment->total_penalty, 2),
-            'next_payment_date' => $installment->next_payment_date ?: '-',
-            'days_passed' => $firstApprovedDate ? Carbon::parse($firstApprovedDate)->diffInDays($today) : 0,
-            'installment_period' => $installment->installment_period ?? 0,
-            'payment_history' => $installment->payment_history->map(function ($p) {
-                return [
-                    'amount' => (float) $p->amount,
-                    'amount_paid' => (float) $p->amount_paid,
-                    'status' => $p->status,
-                    'payment_due_date' => $p->payment_due_date,
-                ];
-            })->values(),
+            'gold_amount' => $installment->gold_amount,
+            'total_paid' => $payments->sum('amount_paid'),
+            'total_installment_amount' => $payments->sum('amount'),
+            'due_today' => $nextPayment ? $nextPayment->amount - $nextPayment->amount_paid : 0,
+            'advance_payment' => $installment->advance_payment,
+            'total_penalty' => $installment->total_penalty,
+            'next_payment_date' => $nextPayment ? $nextPayment->payment_due_date->format('Y-m-d') : '-',
+            'days_passed' => now()->diffInDays($installment->start_date),
+            'installment_period' => $installment->installment_period,
+            'payment_history' => $payments,
         ]);
+    }
+
+    public function paymentHistory(Request $request)
+    {
+        $user = Auth::user();
+        $installment = InstallmentRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->latest()
+            ->first();
+
+        if (!$installment) {
+            return response()->json(['error' => 'No active installment found'], 404);
+        }
+
+        $payments = InstallmentPayment::where('installment_request_id', $installment->id)
+            ->orderByDesc('payment_due_date')
+            ->get();
+
+        return response()->json(['payments' => $payments]);
     }
 }

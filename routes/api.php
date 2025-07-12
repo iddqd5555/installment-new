@@ -9,6 +9,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\UserLocationController;
 use App\Http\Controllers\KBankPaymentController;
 use App\Http\Controllers\InstallmentPaymentController;
+use App\Http\Controllers\PaymentAutoMatchController;
+
+
+Route::post('/payment/auto-match', [PaymentAutoMatchController::class, 'autoMatch']);
+
 
 Route::post('/installment/pay', [InstallmentPaymentController::class, 'pay']);
 Route::get('/installment/overdue', [InstallmentPaymentController::class, 'overdue']);
