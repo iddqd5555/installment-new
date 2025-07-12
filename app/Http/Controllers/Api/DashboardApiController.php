@@ -20,26 +20,35 @@ class DashboardApiController extends Controller
             ->first();
 
         if (!$installment) {
-            return response()->json(['error' => 'No active installment found'], 404);
+            return response()->json(['error' => 'ไม่พบสัญญาผ่อนที่อนุมัติล่าสุด'], 404);
         }
 
-        $payments = InstallmentPayment::where('installment_request_id', $installment->id)
-            ->orderBy('payment_due_date')
-            ->get();
+        $payments = InstallmentPayment::where('installment_request_id', $installment->id)->get();
 
-        $nextPayment = $payments->firstWhere('status', 'pending');
+        $totalPaid = $payments->sum('amount_paid');
+        $totalInstallmentAmount = $payments->sum('amount');
+
+        $nextPayment = $payments->where('status', '!=', 'approved')->sortBy('payment_due_date')->first();
 
         return response()->json([
             'gold_amount' => $installment->gold_amount,
-            'total_paid' => $payments->sum('amount_paid'),
-            'total_installment_amount' => $payments->sum('amount'),
-            'due_today' => $nextPayment ? $nextPayment->amount - $nextPayment->amount_paid : 0,
+            'total_paid' => $totalPaid,
+            'total_installment_amount' => $totalInstallmentAmount,
+            'due_today' => $nextPayment ? ($nextPayment->amount - $nextPayment->amount_paid) : 0,
             'advance_payment' => $installment->advance_payment,
             'total_penalty' => $installment->total_penalty,
-            'next_payment_date' => $nextPayment ? $nextPayment->payment_due_date->format('Y-m-d') : '-',
+            'next_payment_date' => $nextPayment ? $nextPayment->payment_due_date->format('Y-m-d H:i:s') : '-',
             'days_passed' => now()->diffInDays($installment->start_date),
             'installment_period' => $installment->installment_period,
-            'payment_history' => $payments,
+            'payment_history' => $payments->map(function ($p) {
+                return [
+                    'amount' => $p->amount,
+                    'amount_paid' => $p->amount_paid,
+                    'status' => $p->status,
+                    'payment_status' => $p->payment_status,
+                    'payment_due_date' => $p->payment_due_date->format('Y-m-d H:i:s'),
+                ];
+            }),
         ]);
     }
 }
