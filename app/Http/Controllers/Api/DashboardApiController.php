@@ -14,7 +14,6 @@ class DashboardApiController extends Controller
     {
         $user = Auth::user();
 
-        // ดึง Installment ล่าสุดของ User
         $installment = InstallmentRequest::where('user_id', $user->id)
             ->where('status', 'approved')
             ->latest()
@@ -24,7 +23,6 @@ class DashboardApiController extends Controller
             return response()->json(['error' => 'No active installment found'], 404);
         }
 
-        // ดึง payment ล่าสุด
         $payments = InstallmentPayment::where('installment_request_id', $installment->id)
             ->orderBy('payment_due_date')
             ->get();
@@ -43,24 +41,5 @@ class DashboardApiController extends Controller
             'installment_period' => $installment->installment_period,
             'payment_history' => $payments,
         ]);
-    }
-
-    public function paymentHistory(Request $request)
-    {
-        $user = Auth::user();
-        $installment = InstallmentRequest::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->latest()
-            ->first();
-
-        if (!$installment) {
-            return response()->json(['error' => 'No active installment found'], 404);
-        }
-
-        $payments = InstallmentPayment::where('installment_request_id', $installment->id)
-            ->orderByDesc('payment_due_date')
-            ->get();
-
-        return response()->json(['payments' => $payments]);
     }
 }
