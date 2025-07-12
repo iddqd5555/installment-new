@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\InstallmentRequest;
 use App\Models\InstallmentPayment;
+use Illuminate\Support\Facades\DB;
 
 class InstallmentPaymentController extends Controller
 {
     /**
-     * POST /api/installment/pay (ออโต้ approve ทั้งเต็มงวดและบางส่วน)
+     * POST /api/installment/pay (Auto approve ด้วย OCR สลิป slip, กันสลิปซ้ำ)
      */
     public function pay(Request $request)
     {
@@ -17,104 +18,93 @@ class InstallmentPaymentController extends Controller
             'installment_request_id' => 'required|integer',
             'amount_paid' => 'required|numeric',
             'pay_for_dates' => 'required|array',
-            'slip' => 'nullable|image',
+            'slip' => 'required|file|mimes:jpeg,png,pdf',
         ]);
 
-        $installment = InstallmentRequest::findOrFail($request->installment_request_id);
+        DB::beginTransaction();
+        try {
+            $installment = InstallmentRequest::findOrFail($request->installment_request_id);
 
-        $imgPath = null;
-        $imgHash = null;
-        $qrText = null;
-        $foundAcc = false;
+            $imgPath = $request->file('slip')->store('slips', 'public');
+            $imgHash = md5_file($request->file('slip')->getRealPath());
 
-        if ($request->hasFile('slip')) {
-            $file = $request->file('slip');
-            $imgPath = $file->store('slips');
-            $imgHash = md5_file($file->getRealPath());
+            // === OCR ด้วย Python (read_slip.py) ===
+            $output = [];
+            $return_var = 0;
+            $python = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'python' : 'python3'; // windows=python, linux=python3
+            $script = base_path('read_slip.py');
+            exec("$python $script " . escapeshellarg(storage_path('app/public/' . $imgPath)), $output, $return_var);
+            $ocrData = json_decode(implode('', $output), true);
 
-            // กันอัพสลิปซ้ำ
-            $dup = InstallmentPayment::where('installment_request_id', $installment->id)
-                ->where('slip_hash', $imgHash)
-                ->first();
-            if ($dup) {
-                return response()->json(['success' => false, 'error' => 'สลิปนี้ถูกอัปโหลดไปแล้ว'], 409);
+            // === เช็ค slip reference ห้ามซ้ำ ===
+            $reference = $ocrData['reference'] ?? null;
+            if ($reference && InstallmentPayment::where('slip_reference', $reference)->exists()) {
+                return response()->json(['success' => false, 'error' => 'รหัสอ้างอิงนี้ถูกใช้ไปแล้ว (สลิปซ้ำ)'], 409);
             }
 
-            // อ่าน QR
-            $qrText = $this->readQrFromSlip(storage_path('app/' . $imgPath));
-
-            // เลขบัญชีบริษัทที่ยอมรับ
-            $companyAccounts = ['8651008116', '0021503541'];
-
-            if ($qrText) {
-                $qrTextDigits = preg_replace('/\D/', '', $qrText);
-                foreach ($companyAccounts as $acc) {
-                    if (strpos($qrTextDigits, $acc) !== false) {
-                        $foundAcc = true;
-                        break;
-                    }
+            // === ต้องเจอเลขบัญชีบริษัทหรือ x-8116 (ดัก slip ทุกแบงก์) ===
+            $accountOk = false;
+            $companyAccounts = ['8651008116', 'x-8116', '8116'];
+            foreach ($companyAccounts as $acc) {
+                if (isset($ocrData['account']) && strpos($ocrData['account'], $acc) !== false) {
+                    $accountOk = true;
+                    break;
                 }
             }
-
-            if ($qrText && !$foundAcc) {
-                return response()->json(['success' => false, 'error' => 'QR ในสลิปไม่ใช่เลขบัญชีบริษัท'], 422);
+            $companyOk = isset($ocrData['company']) && str_contains($ocrData['company'], 'วิสดอม');
+            if (!$accountOk || !$companyOk) {
+                return response()->json(['success' => false, 'error' => 'บัญชีปลายทางไม่ใช่บริษัท กรุณาตรวจสอบสลิปอีกครั้ง'], 422);
             }
-        }
 
-        $totalPaid = $request->amount_paid;
-        $dates = $request->pay_for_dates;
+            // ===== ดึงจำนวนเงินจาก OCR ถ้าเจอ (priority) =====
+            $amountPaid = floatval($ocrData['amount'] ?? $request->amount_paid);
+            $totalPaid = $amountPaid;
+            $dates = $request->pay_for_dates;
 
-        foreach ($dates as $date) {
-            $payment = InstallmentPayment::where('installment_request_id', $installment->id)
-                ->whereDate('payment_due_date', $date)
-                ->first();
+            foreach ($dates as $date) {
+                $payment = InstallmentPayment::where('installment_request_id', $installment->id)
+                    ->whereDate('payment_due_date', $date)
+                    ->first();
 
-            if ($payment && $payment->status !== 'paid') {
-                $pay = min($payment->amount - $payment->amount_paid, $totalPaid);
-                $payment->amount_paid += $pay;
-                $payment->payment_proof = $imgPath;
-                $payment->slip_hash = $imgHash;
-                $payment->slip_qr_text = $qrText;
+                if ($payment && !in_array($payment->status, ['paid', 'approved'])) {
+                    $pay = min($payment->amount - $payment->amount_paid, $totalPaid);
+                    $payment->amount_paid += $pay;
+                    $payment->payment_proof = $imgPath;
+                    $payment->slip_hash = $imgHash;
+                    $payment->slip_reference = $reference;
+                    $payment->slip_ocr_json = json_encode($ocrData, JSON_UNESCAPED_UNICODE);
 
-                // แก้ logic ใหม่: auto approve ทันทีถ้า QR ถูก ไม่ว่าจ่ายเต็มหรือบางส่วน
-                if ($foundAcc) {
                     if ($payment->amount_paid >= $payment->amount) {
                         $payment->status = 'approved';
                         $payment->payment_status = 'paid';
                         $payment->paid_at = now();
                     } else {
-                        $payment->status = 'partial_paid'; // สถานะใหม่: จ่ายบางส่วน
+                        $payment->status = 'partial_paid';
                         $payment->payment_status = 'partial';
                     }
-                } else {
-                    $payment->status = 'pending';
-                    $payment->payment_status = 'pending';
+
+                    $payment->save();
+                    $totalPaid -= $pay;
+                    if ($totalPaid <= 0) break;
                 }
-
-                $payment->save();
-                $totalPaid -= $pay;
-                if ($totalPaid <= 0) break;
             }
-        }
 
-        if (method_exists($installment, 'updateTotalPenalty')) {
-            $installment->updateTotalPenalty();
+            // Update total_paid & remaining_amount
+            $installment->total_paid = InstallmentPayment::where('installment_request_id', $installment->id)->sum('amount_paid');
+            $installment->remaining_amount = InstallmentPayment::where('installment_request_id', $installment->id)
+                ->where('status', '!=', 'approved')->sum(DB::raw('amount - amount_paid'));
+            if (method_exists($installment, 'updateTotalPenalty')) {
+                $installment->updateTotalPenalty();
+            }
             $installment->save();
+
+            DB::commit();
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error("InstallmentPayment pay error: " . $e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
-
-        return response()->json(['success' => true]);
-    }
-
-    private function readQrFromSlip($filePath)
-    {
-        $process = new \Symfony\Component\Process\Process(['python', base_path('read_qr.py'), $filePath]);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            return null;
-        }
-
-        return trim($process->getOutput());
     }
 
     public function overdue(Request $request)
@@ -138,7 +128,7 @@ class InstallmentPaymentController extends Controller
 
         $payments = InstallmentPayment::where('installment_request_id', $installment->id)
             ->orderBy('payment_due_date')
-            ->get(['id','amount','amount_paid','payment_due_date','status','payment_status','payment_proof','slip_qr_text']);
+            ->get(['id','amount','amount_paid','payment_due_date','status','payment_status','payment_proof','slip_reference','slip_ocr_json']);
 
         return response()->json(['history' => $payments]);
     }
