@@ -26,11 +26,14 @@ class InstallmentPaymentController extends Controller
         $installment = InstallmentRequest::findOrFail($request->installment_request_id);
 
         $imgPath = null;
+        $imgHash = null;
+        $qrText = null;
         if ($request->hasFile('slip')) {
             $file = $request->file('slip');
-            $imgPath = $file->store('slips');
+            $imgPath = $file->store('public/slips');
             $imgHash = md5_file($file->getRealPath());
 
+            // ตรวจสอบ slip ซ้ำ
             $dup = InstallmentPayment::where('installment_request_id', $installment->id)
                 ->where('slip_hash', $imgHash)
                 ->first();
@@ -38,28 +41,44 @@ class InstallmentPaymentController extends Controller
                 return response()->json(['success' => false, 'error' => 'สลิปนี้ถูกอัปโหลดไปแล้ว'], 409);
             }
 
-            // --- อ่าน QR ผ่าน Python ---
-            $qrText = $this->readQrFromSlip(storage_path('app/'.$imgPath));
+            // ถ้าใช้ Python QR ให้ดึง text ตรงนี้ (comment ไว้ถ้าใช้จริง)
+            // $qrText = $this->readQrFromSlip(storage_path('app/'.$imgPath));
 
-            // ===== แก้ตรงนี้ =====
-            // เพิ่ม array สำหรับ whitelist เลขบัญชีบริษัท
-            $companyAccounts = [
-                '8651008116', // เดิม: 865-1-00811-6 (บัญชีบริษัทหลัก)
-                '0021503541', // ใหม่: 002-1-503541 (กสิกร สุรเชษฐ์ หงษ์ทอง)
-                // เพิ่มบัญชีอื่นที่อนุมัติได้ในอนาคต
-            ];
-            $foundAcc = false;
-            if ($qrText) {
-                $qrTextDigits = preg_replace('/\D/', '', $qrText);
-                foreach ($companyAccounts as $acc) {
-                    if (strpos($qrTextDigits, $acc) !== false) {
-                        $foundAcc = true;
-                        break;
-                    }
+            // ตัวอย่างตรวจบัญชีบริษัท
+            // $companyAccounts = [
+            //     '8651008116',
+            //     '0021503541',
+            // ];
+            // $foundAcc = false;
+            // if ($qrText) {
+            //     $qrTextDigits = preg_replace('/\D/', '', $qrText);
+            //     foreach ($companyAccounts as $acc) {
+            //         if (strpos($qrTextDigits, $acc) !== false) {
+            //             $foundAcc = true;
+            //             break;
+            //         }
+            //     }
+            // }
+            // if ($qrText && !$foundAcc) {
+            //     return response()->json(['success' => false, 'error' => 'QR ในสลิปไม่ใช่เลขบัญชีบริษัท'], 422);
+            // }
+        }
+
+        // **[ ส่วนนี้สำคัญมาก ต้อง insert หรือ update InstallmentPayment ลง DB จริง ]**
+        foreach ($request->pay_for_dates as $date) {
+            $payment = InstallmentPayment::where('installment_request_id', $installment->id)
+                ->whereDate('payment_due_date', $date)
+                ->first();
+
+            if ($payment) {
+                $payment->amount_paid = $request->amount_paid;
+                $payment->status = 'pending';
+                $payment->payment_status = 'pending';
+                if ($imgPath) {
+                    $payment->payment_proof = str_replace('public/', '', $imgPath);
+                    $payment->slip_hash = $imgHash;
                 }
-            }
-            if ($qrText && !$foundAcc) {
-                return response()->json(['success' => false, 'error' => 'QR ในสลิปไม่ใช่เลขบัญชีบริษัท'], 422);
+                $payment->save();
             }
         }
 
@@ -72,10 +91,6 @@ class InstallmentPaymentController extends Controller
         return response()->json(['success' => true]);
     }
 
-    /**
-     * GET /api/installment/overdue?installment_request_id=...
-     * ดึงรายการยอดค้าง/ดอกเบี้ย/วันไหนบ้าง
-     */
     public function overdue(Request $request)
     {
         $id = $request->query('installment_request_id');
@@ -90,10 +105,6 @@ class InstallmentPaymentController extends Controller
         return response()->json(['overdue' => $overdue]);
     }
 
-    /**
-     * GET /api/installment/history?installment_request_id=...
-     * ประวัติการจ่าย
-     */
     public function history(Request $request)
     {
         $id = $request->query('installment_request_id');
@@ -101,7 +112,6 @@ class InstallmentPaymentController extends Controller
 
         $payments = InstallmentPayment::where('installment_request_id', $installment->id)
             ->orderBy('payment_due_date')
-            // << เลือกเฉพาะ field ที่มีจริงใน db เท่านั้น
             ->get([
                 'id',
                 'amount',
@@ -110,10 +120,8 @@ class InstallmentPaymentController extends Controller
                 'status',
                 'payment_status',
                 'payment_proof'
-                // อย่าใส่ slip_reference, slip_ocr_json ถ้ายังไม่มีใน DB
             ]);
 
         return response()->json(['history' => $payments]);
     }
-
 }
