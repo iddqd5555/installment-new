@@ -101,8 +101,19 @@ class InstallmentPaymentController extends Controller
 
         $payments = InstallmentPayment::where('installment_request_id', $installment->id)
             ->orderBy('payment_due_date')
-            ->get(['id','amount','amount_paid','payment_due_date','status','payment_status','payment_proof']);
+            // << เลือกเฉพาะ field ที่มีจริงใน db เท่านั้น
+            ->get([
+                'id',
+                'amount',
+                'amount_paid',
+                'payment_due_date',
+                'status',
+                'payment_status',
+                'payment_proof'
+                // อย่าใส่ slip_reference, slip_ocr_json ถ้ายังไม่มีใน DB
+            ]);
 
         return response()->json(['history' => $payments]);
     }
+
 }

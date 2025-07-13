@@ -10,16 +10,35 @@ class AuthController extends Controller
 {
     public function login(Request $req)
     {
-        // ตรวจสอบเบอร์และรหัสผ่าน
-        $credentials = $req->validate([
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ]);
+        try {
+            $credentials = $req->validate([
+                'phone' => ['required', 'string'],
+                'password' => ['required', 'string'],
+            ]);
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            
-            // สร้าง Token สำหรับ Sanctum
+            // หา user ตาม phone
+            $user = \App\Models\User::where('phone', $req->phone)->first();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'ไม่พบผู้ใช้เบอร์นี้',
+                ], 404);
+            }
+
+            // ตรวจสอบรหัสผ่านด้วย Hash::check
+            if (!\Hash::check($req->password, $user->password)) {
+                return response()->json([
+                    'message' => 'รหัสผ่านไม่ถูกต้อง',
+                ], 401);
+            }
+
+            // ถ้า user ถูกปิด
+            if ($user->status !== 'active') {
+                return response()->json([
+                    'message' => 'บัญชีนี้ถูกปิดใช้งาน',
+                ], 403);
+            }
+
+            // สร้าง Sanctum Token
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -27,11 +46,13 @@ class AuthController extends Controller
                 'token' => $token,
                 'user' => $user,
             ], 200);
-        }
 
-        return response()->json([
-            'message' => 'Invalid phone number or password',
-        ], 401);
+        } catch (\Throwable $e) {
+            \Log::error('LOGIN ERROR: '.$e->getMessage().' LINE '.$e->getLine());
+            return response()->json([
+                'message' => 'Login Server Error: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     public function register(Request $req)

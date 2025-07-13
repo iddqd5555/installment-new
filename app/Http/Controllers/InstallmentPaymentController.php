@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 class InstallmentPaymentController extends Controller
 {
     /**
-     * POST /api/installment/pay (Auto approve ด้วย OCR สลิป slip, กันสลิปซ้ำ)
+     * POST /api/installment/pay
+     * รองรับอัพสลิปจ่ายหลายงวด ใครโอนก็ได้ (ขอปลายทางบัญชีถูก)
      */
     public function pay(Request $request)
     {
@@ -24,27 +25,26 @@ class InstallmentPaymentController extends Controller
         DB::beginTransaction();
         try {
             $installment = InstallmentRequest::findOrFail($request->installment_request_id);
-
             $imgPath = $request->file('slip')->store('slips', 'public');
             $imgHash = md5_file($request->file('slip')->getRealPath());
 
-            // === OCR ด้วย Python (read_slip.py) ===
+            // OCR ด้วย Python (read_slip.py)
             $output = [];
             $return_var = 0;
-            $python = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'python' : 'python3'; // windows=python, linux=python3
+            $python = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'python' : 'python3';
             $script = base_path('read_slip.py');
             exec("$python $script " . escapeshellarg(storage_path('app/public/' . $imgPath)), $output, $return_var);
             $ocrData = json_decode(implode('', $output), true);
 
-            // === เช็ค slip reference ห้ามซ้ำ ===
+            // ตรวจสอบ slip ซ้ำจาก reference
             $reference = $ocrData['reference'] ?? null;
             if ($reference && InstallmentPayment::where('slip_reference', $reference)->exists()) {
                 return response()->json(['success' => false, 'error' => 'รหัสอ้างอิงนี้ถูกใช้ไปแล้ว (สลิปซ้ำ)'], 409);
             }
 
-            // === ต้องเจอเลขบัญชีบริษัทหรือ x-8116 (ดัก slip ทุกแบงก์) ===
+            // เช็คบัญชีปลายทาง (เฉพาะบริษัท)
             $accountOk = false;
-            $companyAccounts = ['8651008116', 'x-8116', '8116'];
+            $companyAccounts = ['8651008116', 'x-8116', '8116', '0021503541'];
             foreach ($companyAccounts as $acc) {
                 if (isset($ocrData['account']) && strpos($ocrData['account'], $acc) !== false) {
                     $accountOk = true;
@@ -56,7 +56,7 @@ class InstallmentPaymentController extends Controller
                 return response()->json(['success' => false, 'error' => 'บัญชีปลายทางไม่ใช่บริษัท กรุณาตรวจสอบสลิปอีกครั้ง'], 422);
             }
 
-            // ===== ดึงจำนวนเงินจาก OCR ถ้าเจอ (priority) =====
+            // เอาเงินที่จ่ายมาวนจ่ายงวดที่เลือกตามลำดับ (support กรณีจ่ายมากกว่าหนึ่งงวด)
             $amountPaid = floatval($ocrData['amount'] ?? $request->amount_paid);
             $totalPaid = $amountPaid;
             $dates = $request->pay_for_dates;
@@ -82,14 +82,13 @@ class InstallmentPaymentController extends Controller
                         $payment->status = 'partial_paid';
                         $payment->payment_status = 'partial';
                     }
-
                     $payment->save();
                     $totalPaid -= $pay;
                     if ($totalPaid <= 0) break;
                 }
             }
 
-            // Update total_paid & remaining_amount
+            // อัปเดตยอดรวม
             $installment->total_paid = InstallmentPayment::where('installment_request_id', $installment->id)->sum('amount_paid');
             $installment->remaining_amount = InstallmentPayment::where('installment_request_id', $installment->id)
                 ->where('status', '!=', 'approved')->sum(DB::raw('amount - amount_paid'));
@@ -128,7 +127,11 @@ class InstallmentPaymentController extends Controller
 
         $payments = InstallmentPayment::where('installment_request_id', $installment->id)
             ->orderBy('payment_due_date')
-            ->get(['id','amount','amount_paid','payment_due_date','status','payment_status','payment_proof','slip_reference','slip_ocr_json']);
+            ->get([
+                'id','amount','amount_paid','payment_due_date',
+                'status','payment_status','payment_proof',
+                'slip_reference','slip_ocr_json'
+            ]);
 
         return response()->json(['history' => $payments]);
     }
