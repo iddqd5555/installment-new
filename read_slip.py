@@ -10,7 +10,6 @@ def parse_slip(image_path):
     img = Image.open(image_path)
     text = pytesseract.image_to_string(img, lang='tha+eng')
 
-    # ปรับปรุง regex เลขบัญชีให้แม่นยำขึ้น
     acc_match = re.search(r'(865-?1-?00811-?6|8651008116|002-?1-?503541|0021503541)', text.replace(' ', ''))
     account = acc_match.group(1) if acc_match else ''
 
