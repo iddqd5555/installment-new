@@ -10,9 +10,11 @@ class BankAccount extends Model
     use HasFactory;
 
     protected $fillable = [
-        'bank_name',      // ✅ เพิ่มบรรทัดนี้
-        'account_number', // ✅ เพิ่มบรรทัดนี้
-        'account_name',   // ✅ เพิ่มบรรทัดนี้
-        'logo',           // ✅ เพิ่มบรรทัดนี้
+        'bank_name',
+        'account_number',
+        'account_name',
+        'logo',
+        'is_active',   // เพิ่ม
+        'is_default',  // เพิ่ม
     ];
 }

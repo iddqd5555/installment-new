@@ -2,87 +2,88 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Http\Controllers\User\InstallmentController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\InstallmentRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\KBankTestController;
 use App\Http\Controllers\SlipPaymentController;
+use App\Models\Review;
+use App\Models\Logo;
 
+// ---- API ส่งสลิป (ยังใช้ได้) ----
 Route::post('/slip-payment', [SlipPaymentController::class, 'upload']);
 
+// ---- Dashboard User (ของ web user ตัดทิ้ง, ไม่ให้เข้าถึงแล้ว) ----
+//Route::middleware(['auth'])->get('/dashboard', function () {
+//    return redirect('/login');
+//})->name('dashboard');
 
-// ------------------- Dashboard User (แก้ route dashboard ให้ชี้ controller ใหม่) -------------------
-Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-// ------------------- หน้าแรก/Guest -------------------
+// ---- หน้าแรก/Guest ----
 Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
+    $gold = DB::table('daily_gold_prices')->where('date', Carbon::today()->toDateString())->first();
+    if (!$gold) {
+        $gold = DB::table('daily_gold_prices')->orderByDesc('date')->first();
     }
-    return view('welcome');
+    $goldPrices = $gold ? [
+        'ornament_sell' => $gold->sell,
+        'ornament_buy'  => $gold->buy,
+        'date'          => $gold->date,
+    ] : null;
+
+    // --- ดึงรีวิว 4 อันล่าสุด กับโลโก้หลัก (type=main) จากฐานข้อมูล ---
+    $reviews = Review::latest()->take(4)->get();
+    $logo = Logo::where('type', 'main')->first();
+
+    return view('welcome', compact('goldPrices', 'reviews', 'logo'));
 });
 
-// Guest access: ดูราคาทอง/ขอผ่อนแบบ guest
+// ---- Profile ----
+Route::get('/profile', function () {
+    return view('coming-soon');
+})->name('profile.edit');
+
+// ---- Guest access: ดูราคาทอง/ขอผ่อน ----
 Route::middleware(['guest'])->group(function() {
     Route::get('/gold', [InstallmentRequestController::class, 'goldapi'])->name('gold.index');
-    Route::post('/gold/submit-guest', [InstallmentRequestController::class, 'submitGoldGuest'])->name('gold.submit_guest');
 });
 
+Route::post('/gold/submit-guest', [InstallmentRequestController::class, 'submitGoldGuest'])->name('gold.submit_guest');
+
 Route::get('/phone', function () {
-    return view(auth()->check() ? 'phone_logged_in' : 'phone');
+    return view('phone');
 })->name('phone');
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
-// ------------------- Auth / Profile -------------------
-Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-Route::post('/login', [AuthenticatedSessionController::class, 'store']);
-Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-
-// ปิดระบบสมัครสมาชิกชั่วคราว
-// Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
-// Route::post('/register', [RegisteredUserController::class, 'store']);
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/payment-info', [BankAccountController::class, 'index'])->name('payment-info');
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
+// ---- Login: ให้ redirect ไปหน้า Coming Soon ----
+Route::get('/login', function () {
+    return view('coming-soon');
+})->name('login');
+Route::post('/login', function () {
+    abort(403, 'โปรดดาวน์โหลดแอปเพื่อเข้าใช้งาน');
 });
 
-// ------------------- User: คำขอผ่อนทอง/งวดผ่อน/จ่ายเงิน -------------------
-Route::middleware(['auth'])->group(function() {
-    // CRUD คำขอผ่อนทอง (user)
-    Route::get('/installments', [InstallmentController::class, 'index'])->name('user.installments.index');
-    Route::get('/installments/create', [InstallmentController::class, 'create'])->name('user.installments.create');
-    Route::post('/installments', [InstallmentController::class, 'store'])->name('user.installments.store');
-    Route::get('/installments/{id}', [InstallmentController::class, 'show'])->name('user.installments.show');
+Route::get('/register', fn() => abort(403, 'โปรดดาวน์โหลดแอปเพื่อสมัครสมาชิก'))->name('register');
+Route::post('/register', fn() => abort(403, 'โปรดดาวน์โหลดแอปเพื่อสมัครสมาชิก'));
 
-    // หน้า QR + ประวัติ QR
-    Route::get('/qr-history', [InstallmentController::class, 'qrHistory'])->name('user.qr_history');
-    Route::get('/installment/{id}/create-qr', [InstallmentController::class, 'createQr'])->name('user.create_qr');
-});
+// Sunmi Print Route
+Route::get('/sunmi/print/{id}', function($id) {
+    $payment = InstallmentPayment::findOrFail($id);
+    return view('pdf.receipt', [
+        'payment' => $payment,
+        'contract' => $payment->installmentRequest,
+        'customer' => $payment->installmentRequest->user,
+    ]);
+})->name('sunmi.print');
 
-// ------------------- KBank Test -------------------
-Route::get('/kbank/token', [KBankTestController::class, 'getAccessToken']);
-Route::get('/kbank/create-qr', [KBankTestController::class, 'createQr']);
 
-// ------------------- ฝั่ง admin/หลังบ้าน/ระบบอื่น -------------------
-Route::middleware(['auth'])->group(function () {
-    Route::get('/gold/member', [InstallmentRequestController::class, 'showGoldForm'])->name('gold.member');
-    Route::post('/gold/member/store', [InstallmentRequestController::class, 'submitGoldMember'])->name('gold.request.store');
-    Route::get('/installments/request/create/{id}', [InstallmentRequestController::class, 'create'])->name('installments.request.create');
-    Route::get('/orders/history', [InstallmentRequestController::class, 'orderHistory'])->name('orders.history');
-    Route::post('payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])->name('payments.upload-proof');
-});
-
-// ------------------- Auth route, Admin route -------------------
+// ---- Auth route, Admin route ----
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';

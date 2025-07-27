@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\InstallmentPayment;
 use App\Models\InstallmentRequest;
 use Illuminate\Support\Facades\Auth;
-use App\Notifications\PaymentUploaded;
+use App\Models\Notification; // << เพิ่ม
 use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
@@ -48,9 +48,26 @@ class PaymentController extends Controller
 
         $payment->save();
 
-        auth()->user()->notify(new \App\Notifications\PaymentUploaded($payment));
+        // แจ้งเตือนผู้บริหาร
+        $user = auth()->user();
+        Notification::create([
+            'user_id' => null,
+            'role' => 'admin',
+            'type' => 'slip',
+            'title' => 'ลูกค้าแนบสลิปใหม่',
+            'message' => 'ลูกค้า ' . ($user->name ?? '-') . ' แนบสลิปโอนเงินจำนวน ' . number_format($request->amount_paid, 2) . ' บาท',
+            'data' => json_encode([
+                'user_id' => $user->id,
+                'amount' => $request->amount_paid,
+                'installment_request_id' => $installmentRequest->id,
+                'payment_id' => $payment->id,
+                'payment_proof' => $payment->payment_proof,
+            ]),
+        ]);
+
+        // (เดิม) แจ้งลูกค้าผ่าน Notification (Laravel Notification ไม่เกี่ยวกับ admin)
+        // auth()->user()->notify(new \App\Notifications\PaymentUploaded($payment));
 
         return redirect()->route('dashboard')->with('success', '✅ อัปโหลดสลิปเรียบร้อยแล้ว รออนุมัติจากแอดมินค่ะ!');
     }
-
 }

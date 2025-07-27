@@ -19,6 +19,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/dashboard', fn() => redirect()->route('filament.admin.pages.dashboard'))
             ->name('custom.admin.dashboard');
 
+        // ---- กลุ่ม route ที่เฉพาะ staff ----
         Route::middleware('checkRole:staff')->group(function () {
             Route::resource('staff/installments', InstallmentStaffController::class)
                 ->only(['index', 'edit', 'update'])
@@ -27,5 +28,9 @@ Route::prefix('admin')->group(function () {
             Route::post('staff/payments/{id}/approve', [PaymentStaffController::class, 'approve'])
                 ->name('custom.staff.payments.approve');
         });
+
+        // ---- Route Logout สำหรับ admin ทุกคน ----
+        Route::post('/logout', [AdminAuthController::class, 'logout'])
+            ->name('filament.admin.auth.logout');
     });
 });

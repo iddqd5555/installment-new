@@ -30,6 +30,11 @@ class DailyReportResource extends Resource
             TextColumn::make('installmentRequest.payment_number')->label('เลขที่ใบแจ้งหนี้'),
             TextColumn::make('installmentRequest.approved_gold_price')->label('ราคาทองบาทละ')->money('THB'),
             TextColumn::make('installmentRequest.gold_amount')->label('จำนวนทอง (บาททอง)'),
+
+            TextColumn::make('installmentRequest.total_gold_price')->label('เงินต้น')->money('THB'),
+            TextColumn::make('installmentRequest.total_with_interest')->label('ยอดรวม')->money('THB'),
+            TextColumn::make('installmentRequest.interest_amount')->label('ดอกเบี้ย')->money('THB'),
+
             TextColumn::make('amount')->label('ยอดที่ต้องชำระ (บาท)')->money('THB'),
             TextColumn::make('amount_paid')->label('ยอดที่ชำระแล้ว (บาท)')->money('THB'),
             TextColumn::make('installmentRequest.advance_payment')->label('ยอดชำระล่วงหน้า (บาท)')->money('THB'),

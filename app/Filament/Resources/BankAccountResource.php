@@ -11,7 +11,6 @@ use App\Filament\Resources\BankAccountResource\Pages;
 class BankAccountResource extends Resource
 {
     protected static ?string $model = BankAccount::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'จัดการบัญชีธนาคาร';
     protected static ?string $navigationGroup = 'การจัดการการเงิน';
@@ -22,19 +21,22 @@ class BankAccountResource extends Resource
             Forms\Components\TextInput::make('bank_name')
                 ->required()
                 ->label('ชื่อธนาคาร'),
-
             Forms\Components\TextInput::make('account_number')
                 ->required()
                 ->label('เลขบัญชี'),
-
             Forms\Components\TextInput::make('account_name')
                 ->required()
                 ->label('ชื่อบัญชี'),
-
             Forms\Components\FileUpload::make('logo')
                 ->required()
                 ->directory('bank-logos')
                 ->label('โลโก้ธนาคาร'),
+            Forms\Components\Toggle::make('is_active')
+                ->label('เปิดใช้งาน')
+                ->default(true),
+            Forms\Components\Toggle::make('is_default')
+                ->label('บัญชีหลัก')
+                ->default(false),
         ]);
     }
 
@@ -46,8 +48,13 @@ class BankAccountResource extends Resource
                 Tables\Columns\TextColumn::make('bank_name')->label('ชื่อธนาคาร'),
                 Tables\Columns\TextColumn::make('account_number')->label('เลขที่บัญชี'),
                 Tables\Columns\TextColumn::make('account_name')->label('ชื่อบัญชี'),
+                Tables\Columns\IconColumn::make('is_active')->label('ใช้งาน')->boolean(),
+                Tables\Columns\IconColumn::make('is_default')->label('บัญชีหลัก')->boolean(),
             ])
-            ->filters([])
+            ->filters([
+                Tables\Filters\TernaryFilter::make('is_active')->label('ใช้งาน'),
+                Tables\Filters\TernaryFilter::make('is_default')->label('บัญชีหลัก'),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -55,7 +62,6 @@ class BankAccountResource extends Resource
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ])
-            // เพิ่มตรงนี้ 👇
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
             ]);

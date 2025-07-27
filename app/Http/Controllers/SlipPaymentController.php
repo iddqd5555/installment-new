@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Spatie\Ocr\Ocr;
 use App\Models\InstallmentPayment;
-use App\Models\PaymentQrLog;
+use App\Models\BankAccount;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
@@ -22,6 +22,15 @@ class SlipPaymentController extends Controller
         $path = $request->file('slip')->store('slips');
         $ocr = new Ocr();
         $text = $ocr->scan(Storage::path($path));
+
+        // ตรวจสอบเลขบัญชีจาก OCR ว่าตรงกับที่เปิดใช้งานหลังบ้านหรือไม่
+        preg_match_all('/[0-9]{9,12}/', $text, $found_accounts);
+        $ocrAccounts = collect($found_accounts[0] ?? [])->unique()->values();
+
+        $activeBanks = BankAccount::where('is_active', 1)->get();
+        $matchedBank = $activeBanks->first(function($b) use ($ocrAccounts) {
+            return $ocrAccounts->contains($b->account_number);
+        });
 
         // Parse ยอดเงิน/วันที่/Ref
         preg_match('/จำนวน(?:เงิน|เงินที่โอน)?[:\s]*([\d,\.]+) ?บาท?/u', $text, $amount);
@@ -50,7 +59,8 @@ class SlipPaymentController extends Controller
                 'payment_proof' => $path,
                 'payment_due_date' => $datetime ? Carbon::parse($datetime)->format('Y-m-d H:i:00') : now(),
                 'admin_notes' => 'OCR: '.($ref[2] ?? ''),
-                'ref' => $ref[2] ?? null, // เพิ่มฟิลด์ ref ในตารางถ้ายังไม่มี
+                'ref' => $ref[2] ?? null,
+                // สามารถเพิ่ม 'bank_account_id' => $matchedBank?->id, หาก migration เพิ่มไว้แล้ว
             ]);
         } else {
             $pay = $exists;
@@ -64,6 +74,13 @@ class SlipPaymentController extends Controller
             'ref' => $ref[2] ?? null,
             'installment_payment_id' => $pay->id,
             'img_path' => $path,
+            'matched_bank' => $matchedBank ? [
+                'id' => $matchedBank->id,
+                'bank_name' => $matchedBank->bank_name,
+                'account_number' => $matchedBank->account_number,
+                'account_name' => $matchedBank->account_name,
+            ] : null,
+            'ocr_accounts' => $ocrAccounts,
         ]);
     }
 }

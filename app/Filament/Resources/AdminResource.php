@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Hash;
 class AdminResource extends Resource
 {
     protected static ?string $model = Admin::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'การจัดการสมาชิก';
 
     public static function form(Form $form): Form
     {

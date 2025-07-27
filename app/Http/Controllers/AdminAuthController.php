@@ -30,4 +30,14 @@ class AdminAuthController extends Controller
             'username' => ['ข้อมูลล็อกอินไม่ถูกต้อง'],
         ]);
     }
+
+
+    public function logout(Request $request)
+    {
+        \Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/admin/login'); // จะพากลับไปหลังบ้านเสมอ
+    }
+
 }

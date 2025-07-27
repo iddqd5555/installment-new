@@ -13,44 +13,50 @@
     </div>
 </div>
 
-{{-- ตารางราคารับจำนำ --}}
 <div class="container-section gold-main-section">
-    <div class="gold-box">
-        <div class="gold-header">
-            <img src="https://www.goldtraders.or.th/images/logoGT.png" style="height:40px;margin-right:8px;vertical-align:middle;">
-            ราคาทองตามประกาศสมาคมค้าทองคำ
+    <div class="gold-box" style="position: relative;">
+        {{-- รูปโลโก้ซ้ายบน --}}
+        <img src="{{ $logo ? asset('storage/'.$logo->image_url) : asset('img/default-logo.png') }}"
+            alt="โลโก้หลัก" style="position:absolute;top:-30px;left:-30px;width:68px;height:68px;border-radius:16px;border:3px solid #ffd54f;z-index:3;background:#fff;">
+        <div class="gold-header" style="padding-left:55px;">
+            ราคาทองรูปพรรณ 96.5% (ข้อมูลล่าสุดจาก ทองคำราคา.com)
         </div>
         <table class="gold-table" id="goldPriceTable">
             <thead>
                 <tr>
-                    <th class="type">96.5%</th>
-                    <th class="buy">รับซื้อ</th>
-                    <th class="sell">ขายออก</th>
+                    <th style="background:#fffbe5;color:#730a22;font-size:20px;">96.5%</th>
+                    <th style="background:#730a22;color:#fff;font-size:20px;">รับซื้อ</th>
+                    <th style="background:#730a22;color:#fff;font-size:20px;">ขายออก</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="type text-start">ทองคำแท่ง</td>
-                    <td id="gold-bar-buy" class="price"></td>
-                    <td id="gold-bar-sell" class="price"></td>
-                </tr>
-                <tr>
-                    <td class="type text-start">ทองรูปพรรณ</td>
-                    <td id="gold-jewelry-buy" class="price"></td>
-                    <td id="gold-jewelry-sell" class="price"></td>
-                </tr>
-                <tr class="change-row">
-                    <td class="type text-danger text-center" style="font-weight:bold;">
-                        วันนี้ <span id="gold-today-arrow">▼</span>
-                        <span id="gold-today-buy-change" class="text-danger"></span>
+                    <td class="type text-start" style="font-weight:bold;font-size:18px;">ทองรูปพรรณ</td>
+                    <td class="price" style="font-size:22px;font-weight:bold;color:#d33;">
+                        @if($goldPrices && is_numeric($goldPrices['ornament_buy']))
+                            {{ number_format($goldPrices['ornament_buy'], 2) }}
+                        @else
+                            -
+                        @endif
                     </td>
-                    <td class="buy text-danger" id="gold-today-buy" style="font-weight:bold;"></td>
-                    <td class="sell text-danger" id="gold-today-sell" style="font-weight:bold;"></td>
+                    <td class="price" style="font-size:22px;font-weight:bold;color:#b41010;">
+                        @if($goldPrices && is_numeric($goldPrices['ornament_sell']))
+                            {{ number_format($goldPrices['ornament_sell'], 2) }}
+                        @else
+                            -
+                        @endif
+                    </td>
                 </tr>
             </tbody>
         </table>
-        <div class="gold-footer">
-            <span id="goldPriceDate">-</span>
+        <div class="gold-footer" style="text-align:right;padding-bottom:2px;padding-right:10px;">
+            @if($goldPrices && !empty($goldPrices['date']))
+                <span style="color:#999;font-size:15px;">
+                    อัปเดต {{ \Carbon\Carbon::parse($goldPrices['date'].' 09:00')->format('d/m/Y H:i') }}
+                </span>
+            @else
+                <span style="color:#c33;">ไม่สามารถโหลดราคาทองได้</span>
+            @endif
         </div>
     </div>
 </div>
@@ -77,17 +83,22 @@
 <div class="container-section">
     <div class="section-title">รีวิวบางส่วนจากลูกค้าจริง</div>
     <div class="row g-3">
-        @for($i=1;$i<=4;$i++)
-        <div class="col-md-3 col-6">
-            <div class="section-card text-center">
-                <div class="mb-2"><img src="https://placehold.co/80x80/730A22/fff?text=IMG" class="rounded-circle" /></div>
-                <div class="fw-bold mb-1">ลูกค้ารีวิว {{ $i }}</div>
-                <div style="font-size:14px;">ได้รับทองจริง ผ่อนง่าย</div>
+        @foreach($reviews as $review)
+            <div class="col-md-3 col-6">
+                <div class="section-card text-center">
+                    <div class="mb-2 d-flex justify-content-center align-items-center" style="min-height:140px;">
+                        <img src="{{ $review->image_url ? asset('storage/'.$review->image_url) : 'https://placehold.co/140x140/730A22/fff?text=IMG' }}"
+                            class="rounded-circle shadow" style="width:120px;height:120px;object-fit:cover;">
+                    </div>
+                    <div class="fw-bold mb-1">{{ $review->name }}</div>
+                    <div style="font-size:16px;line-height:1.3;">{{ $review->text }}</div>
+                </div>
             </div>
-        </div>
-        @endfor
+        @endforeach
     </div>
 </div>
+
+{{-- ส่วนที่เหลือเหมือนเดิม --}}
 
 {{-- ขั้นตอนการสมัคร --}}
 <div class="container-section">
@@ -203,37 +214,5 @@
         </form>
     </div>
 </div>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    fetch('/api/gold-latest')
-        .then(res => res.json())
-        .then(data => {
-            console.log("gold-latest data:", data); // DEBUG
-            document.getElementById('gold-bar-buy').innerText = Number(data.gold_bar_buy).toLocaleString();
-            document.getElementById('gold-bar-sell').innerText = Number(data.gold_bar_sell).toLocaleString();
-            document.getElementById('gold-jewelry-buy').innerText = Number(data.gold_jewelry_buy).toLocaleString();
-            document.getElementById('gold-jewelry-sell').innerText = Number(data.gold_jewelry_sell).toLocaleString();
-
-            let arrow = parseFloat(data.change_buy) < 0 ? '▼' : '▲';
-            let color = parseFloat(data.change_buy) < 0 ? 'red' : 'green';
-            document.getElementById('gold-today-arrow').innerText = arrow;
-            document.getElementById('gold-today-arrow').style.color = color;
-            document.getElementById('gold-today-buy-change').innerText = data.change_buy ?? '';
-            document.getElementById('gold-today-buy').innerHTML = arrow + " " + (data.change_buy ?? '');
-            document.getElementById('gold-today-buy').style.color = color;
-            document.getElementById('gold-today-sell').innerHTML = arrow + " " + (data.change_sell ?? '');
-            document.getElementById('gold-today-sell').style.color = color;
-
-            document.getElementById('goldPriceDate').innerText = data.last_update ?? '';
-        })
-        .catch(e => {
-            document.getElementById('goldPriceDate').innerText = 'ไม่สามารถโหลดราคาทองได้';
-            console.error("Fetch gold error:", e);
-        });
-});
-</script>
-@endpush
 
 @endsection

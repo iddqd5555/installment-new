@@ -10,7 +10,9 @@ class AuthServiceProvider extends ServiceProvider
     /**
      * The policy mappings for the application.
      */
-    protected $policies = [];
+    protected $policies = [
+        \App\Models\InstallmentRequest::class => \App\Policies\InstallmentRequestPolicy::class,
+    ];
 
     /**
      * Register any authentication / authorization services.
@@ -21,4 +23,6 @@ class AuthServiceProvider extends ServiceProvider
             return $user->is_admin === 1;
         });
     }
+
+    
 }

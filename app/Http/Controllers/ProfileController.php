@@ -5,18 +5,28 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Models\UserDocument;
 
 class ProfileController extends Controller
 {
     public function show(Request $request)
     {
-        \Log::info('user()', [$request->user()]);
         $user = $request->user();
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
         try {
-            return response()->json($user->toArray());
+            $profile = $user->toArray();
+            // แนบ array เอกสาร
+            $profile['documents'] = $user->documents()->orderByDesc('created_at')->get()->map(function($doc){
+                return [
+                    'id' => $doc->id,
+                    'name' => $doc->name,
+                    'url' => asset($doc->file_url),
+                    'uploaded_at' => $doc->created_at->format('Y-m-d H:i'),
+                ];
+            })->values();
+            return response()->json($profile);
         } catch (\Throwable $e) {
             \Log::error('Profile error: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
