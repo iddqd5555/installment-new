@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\PinController;
 use App\Http\Controllers\Api\UserDocumentController;
 use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\BankAccountApiController;
+use App\Http\Controllers\UserController;
 
 // Public Routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -53,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function() {
 
     Route::get('/installment/user-history', [InstallmentPaymentController::class, 'userHistory']);
 
+    // Update location ล่าสุด (ต้องเพิ่ม)
     Route::post('/user/update-location', [UserLocationController::class, 'updateLocation']);
 
     Route::get('/user/profile', [ProfileController::class, 'show']);
@@ -60,11 +62,9 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile/update', [ProfileController::class, 'update']);
 
-    // ----- แก้ตรงนี้เป็น PATCH -----
     Route::get('notifications', [NotificationApiController::class, 'index']);
     Route::patch('notifications/{id}/read', [NotificationApiController::class, 'markAsRead']);
     Route::post('notifications/mark-all-read', [NotificationApiController::class, 'markAllAsRead']);
-    // --------------------------------
 
     Route::post('/user/upload-document', [UserDocumentController::class, 'upload']);
 
@@ -72,4 +72,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/user/check-pin', [PinController::class, 'checkPin']);
 
     Route::post('/installments/{contract}/pay-from-advance', [DashboardApiController::class, 'payFromAdvance']);
+
+    Route::post('/user/update-fcm-token', [ProfileController::class, 'updateFcmToken']);
+
 });

@@ -70,4 +70,14 @@ class ProfileController extends Controller
 
         return response()->json(['message' => 'Profile updated', 'user' => $user]);
     }
+
+    public function updateFcmToken(Request $request)
+    {
+        $user = $request->user();
+        $user->fcm_token = $request->input('fcm_token');
+        $user->save();
+
+        return response()->json(['success' => true]);
+    }
+
 }

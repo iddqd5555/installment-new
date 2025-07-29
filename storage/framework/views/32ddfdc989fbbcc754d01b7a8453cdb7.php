@@ -1,23 +1,21 @@
-@extends('layouts.app')
+<?php $__env->startSection('content'); ?>
 
-@section('content')
 
-{{-- Banner หลัก --}}
 <div class="container-section">
     <div class="theme-bg text-white py-5 banner-curve-all">
         <div class="text-center">
             <h1 class="display-4 fw-bold">บัตรประชาชนใบเดียว ก็ผ่อนได้</h1>
             <div class="lead mb-2 fs-5">ไม่เช็คแบล็คลิสต์ ไม่เช็คบูโร ไม่ใช้คนค้ำ</div>
-            <a href="{{ route('gold.index') }}" class="btn btn-theme btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
+            <a href="<?php echo e(route('gold.index')); ?>" class="btn btn-theme btn-rounded mt-2">เริ่มต้นผ่อนทองเลย</a>
         </div>
     </div>
 </div>
 
 <div class="container-section gold-main-section">
     <div class="gold-box" style="position: relative;">
-        {{-- รูปโลโก้ซ้ายบน --}}
         
-        <div class="gold-header" style="padding-left:10px;">
+        
+        <div class="gold-header" style="padding-left:0px;">
             ราคาทองรูปพรรณ 96.5% (ข้อมูลล่าสุดจาก ทองคำราคา.com)
         </div>
         <table class="gold-table" id="goldPriceTable">
@@ -32,35 +30,38 @@
                 <tr>
                     <td class="type text-start" style="font-weight:bold;font-size:18px;">ทองรูปพรรณ</td>
                     <td class="price" style="font-size:22px;font-weight:bold;color:#d33;">
-                        @if($goldPrices && is_numeric($goldPrices['ornament_buy']))
-                            {{ number_format($goldPrices['ornament_buy'], 2) }}
-                        @else
+                        <?php if($goldPrices && is_numeric($goldPrices['ornament_buy'])): ?>
+                            <?php echo e(number_format($goldPrices['ornament_buy'], 2)); ?>
+
+                        <?php else: ?>
                             -
-                        @endif
+                        <?php endif; ?>
                     </td>
                     <td class="price" style="font-size:22px;font-weight:bold;color:#b41010;">
-                        @if($goldPrices && is_numeric($goldPrices['ornament_sell']))
-                            {{ number_format($goldPrices['ornament_sell'], 2) }}
-                        @else
+                        <?php if($goldPrices && is_numeric($goldPrices['ornament_sell'])): ?>
+                            <?php echo e(number_format($goldPrices['ornament_sell'], 2)); ?>
+
+                        <?php else: ?>
                             -
-                        @endif
+                        <?php endif; ?>
                     </td>
                 </tr>
             </tbody>
         </table>
         <div class="gold-footer" style="text-align:right;padding-bottom:2px;padding-right:10px;">
-            @if($goldPrices && !empty($goldPrices['date']))
+            <?php if($goldPrices && !empty($goldPrices['date'])): ?>
                 <span style="color:#999;font-size:15px;">
-                    อัปเดต {{ \Carbon\Carbon::parse($goldPrices['date'].' 09:00')->format('d/m/Y H:i') }}
+                    อัปเดต <?php echo e(\Carbon\Carbon::parse($goldPrices['date'].' 09:00')->format('d/m/Y H:i')); ?>
+
                 </span>
-            @else
+            <?php else: ?>
                 <span style="color:#c33;">ไม่สามารถโหลดราคาทองได้</span>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-{{-- จุดเด่น --}}
+
 <div class="container-section">
     <div class="row text-center g-3">
         <div class="col-md-3 col-6">
@@ -78,28 +79,28 @@
     </div>
 </div>
 
-{{-- รีวิวลูกค้าจริง --}}
+
 <div class="container-section">
     <div class="section-title">รีวิวบางส่วนจากลูกค้าจริง</div>
     <div class="row g-3">
-        @foreach($reviews as $review)
+        <?php $__currentLoopData = $reviews; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $review): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <div class="col-md-3 col-6">
                 <div class="section-card text-center">
                     <div class="mb-2 d-flex justify-content-center align-items-center" style="min-height:140px;">
-                        <img src="{{ $review->image_url ? asset('storage/'.$review->image_url) : 'https://placehold.co/140x140/730A22/fff?text=IMG' }}"
+                        <img src="<?php echo e($review->image_url ? asset('storage/'.$review->image_url) : 'https://placehold.co/140x140/730A22/fff?text=IMG'); ?>"
                             class="rounded-circle shadow" style="width:120px;height:120px;object-fit:cover;">
                     </div>
-                    <div class="fw-bold mb-1">{{ $review->name }}</div>
-                    <div style="font-size:16px;line-height:1.3;">{{ $review->text }}</div>
+                    <div class="fw-bold mb-1"><?php echo e($review->name); ?></div>
+                    <div style="font-size:16px;line-height:1.3;"><?php echo e($review->text); ?></div>
                 </div>
             </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
 
-{{-- ส่วนที่เหลือเหมือนเดิม --}}
 
-{{-- ขั้นตอนการสมัคร --}}
+
+
 <div class="container-section">
     <div class="section-title">ขั้นตอนการสมัครผ่อนทอง</div>
     <div class="row text-center mb-4">
@@ -121,7 +122,7 @@
     </div>
 </div>
 
-{{-- คุณสมบัติและเอกสาร --}}
+
 <div class="container-section">
     <div class="row g-3">
         <div class="col-md-6">
@@ -150,7 +151,7 @@
     </div>
 </div>
 
-{{-- พื้นที่ให้บริการ --}}
+
 <div class="container-section">
     <div class="section-title">พื้นที่ให้บริการ</div>
     <div class="section-card">
@@ -164,11 +165,11 @@
     </div>
 </div>
 
-{{-- FAQ --}}
+
 <div class="container-section">
     <div class="section-title">คำถามที่พบบ่อย (FAQ)</div>
     <div class="accordion" id="faqAccordion">
-        @php
+        <?php
         $faqs = [
             ["q" => "คำถามเกี่ยวกับผ่อนทองทั่วไป", "a" => "สามารถผ่อนทองได้โดยใช้บัตรประชาชนใบเดียว"],
             ["q" => "ผ่อนเครื่องใช้ไฟฟ้าได้ไหม", "a" => "ได้ มีบริการผ่อนเครื่องใช้ไฟฟ้า"],
@@ -176,23 +177,24 @@
             ["q" => "การรับทองที่ไหน", "a" => "รับทองหน้าร้านหรือจัดส่งถึงบ้าน"],
             ["q" => "ทองผ่อนได้ไหม", "a" => "ผ่อนได้โดยใช้บัตรประชาชนใบเดียว"],
         ];
-        @endphp
-        @foreach($faqs as $i => $faq)
+        ?>
+        <?php $__currentLoopData = $faqs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $faq): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="accordion-item">
-            <h2 class="accordion-header" id="faq{{ $i }}">
-                <button class="accordion-button collapsed theme-color" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $i }}">
-                    {{ $faq['q'] }}
+            <h2 class="accordion-header" id="faq<?php echo e($i); ?>">
+                <button class="accordion-button collapsed theme-color" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo e($i); ?>">
+                    <?php echo e($faq['q']); ?>
+
                 </button>
             </h2>
-            <div id="collapse{{ $i }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">{{ $faq['a'] }}</div>
+            <div id="collapse<?php echo e($i); ?>" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body"><?php echo e($faq['a']); ?></div>
             </div>
         </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 </div>
 
-{{-- ฟอร์มขอผ่อนทอง --}}
+
 <div class="container-section">
     <div class="section-title">แบบฟอร์มขอผ่อนทอง</div>
     <div class="section-card">
@@ -214,4 +216,6 @@
     </div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\installment-new\resources\views/welcome.blade.php ENDPATH**/ ?>

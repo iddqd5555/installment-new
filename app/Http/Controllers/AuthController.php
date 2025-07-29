@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Services\ActivityLogger;
 
 class AuthController extends Controller
 {
@@ -16,30 +17,30 @@ class AuthController extends Controller
                 'password' => ['required', 'string'],
             ]);
 
-            // หา user ตาม phone
-            $user = \App\Models\User::where('phone', $req->phone)->first();
-            if (!$user) {
-                return response()->json([
-                    'message' => 'ไม่พบผู้ใช้เบอร์นี้',
-                ], 404);
-            }
+            $user = User::where('phone', $req->phone)->first();
+            if (!$user) return response()->json(['message' => 'ไม่พบผู้ใช้เบอร์นี้'], 404);
+            if (!\Hash::check($req->password, $user->password))
+                return response()->json(['message' => 'รหัสผ่านไม่ถูกต้อง'], 401);
+            if ($user->status !== 'active')
+                return response()->json(['message' => 'บัญชีนี้ถูกปิดใช้งาน'], 403);
 
-            // ตรวจสอบรหัสผ่านด้วย Hash::check
-            if (!\Hash::check($req->password, $user->password)) {
-                return response()->json([
-                    'message' => 'รหัสผ่านไม่ถูกต้อง',
-                ], 401);
-            }
-
-            // ถ้า user ถูกปิด
-            if ($user->status !== 'active') {
-                return response()->json([
-                    'message' => 'บัญชีนี้ถูกปิดใช้งาน',
-                ], 403);
-            }
-
-            // สร้าง Sanctum Token
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Log event สำคัญ (login)
+            ActivityLogger::log(
+                $user,
+                'login',
+                $req->ip(),
+                $req->input('lat'),
+                $req->input('lng'),
+                $req->input('is_mocked') ? 'mocked' : 'normal',
+                'เข้าสู่ระบบ'
+            );
+            // Update ตำแหน่งล่าสุด
+            $user->latitude = $req->input('lat');
+            $user->longitude = $req->input('lng');
+            $user->location_updated_at = now();
+            $user->save();
 
             return response()->json([
                 'message' => 'Login successful',
@@ -49,12 +50,9 @@ class AuthController extends Controller
 
         } catch (\Throwable $e) {
             \Log::error('LOGIN ERROR: '.$e->getMessage().' LINE '.$e->getLine());
-            return response()->json([
-                'message' => 'Login Server Error: '.$e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Login Server Error: '.$e->getMessage()], 500);
         }
     }
-
     public function register(Request $req)
     {
         $req->validate([

@@ -19,6 +19,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\GoldFetchPrice::class,
         \App\Console\Commands\BackupDatabase::class,
         \App\Console\Commands\CommissionCalculate::class,
+        \App\Console\Commands\ClearOldLocationLogs::class, // << เพิ่มตรงนี้!
     ];
 
     protected function schedule(Schedule $schedule): void
@@ -31,7 +32,11 @@ class Kernel extends ConsoleKernel
         // 2. สำรองฐานข้อมูล
         $schedule->command('backup:db')->dailyAt('02:00');
 
-        // 3. แจ้งเตือน "ครบกำหนดงวดวันนี้" (User)
+        // 3. ลบ log user_location_logs เก่ากว่า 7 วัน
+        $schedule->command('logs:clear-location-7days')->dailyAt('02:30');
+
+        // *** ที่เหลือเหมือนเดิม ***
+        // 4. แจ้งเตือน "ครบกำหนดงวดวันนี้" (User)
         $schedule->call(function () {
             $today = Carbon::today();
             $due = InstallmentPayment::where('status', 'pending')
@@ -62,7 +67,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('08:00');
 
-        // 4. แจ้งเตือน "ค้างจ่ายทันที" (Admin, ทุกวัน) + "ค้างจ่าย 3 วัน+ (Highlight)"
+        // 5. แจ้งเตือน "ค้างจ่ายทันที" (Admin, ทุกวัน) + "ค้างจ่าย 3 วัน+ (Highlight)"
         $schedule->call(function () {
             $today = Carbon::today();
             $overdue = InstallmentPayment::where('status', 'pending')
@@ -107,7 +112,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('09:10');
 
-        // 5. แจ้งเตือนค้างจ่ายฝั่ง User (สร้าง Notification จริง, mark as read ได้)
+        // 6. แจ้งเตือนค้างจ่ายฝั่ง User (สร้าง Notification จริง, mark as read ได้)
         $schedule->call(function () {
             $today = Carbon::today();
             $overdue = InstallmentPayment::where('status', 'pending')
@@ -139,7 +144,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('09:05');
 
-        // 6. Job สร้างงวดผ่อนใหม่อัตโนมัติ (ข้ามวันอาทิตย์)
+        // 7. Job สร้างงวดผ่อนใหม่อัตโนมัติ (ข้ามวันอาทิตย์)
         $schedule->call(function () {
             $today = Carbon::today();
             if ($today->isSunday()) {
@@ -176,7 +181,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('09:00');
 
-        // 7. Job หัก advance และแจ้งเตือน (ข้ามวันอาทิตย์)
+        // 8. Job หัก advance และแจ้งเตือน (ข้ามวันอาทิตย์)
         $schedule->call(function () {
             $today = Carbon::today();
             if ($today->isSunday()) {
@@ -211,7 +216,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('09:00');
 
-        // 8. Job แจ้งเตือน 3 วันล่วงหน้า (ข้ามถ้าวันแจ้งเตือนเป็นอาทิตย์)
+        // 9. Job แจ้งเตือน 3 วันล่วงหน้า (ข้ามถ้าวันแจ้งเตือนเป็นอาทิตย์)
         $schedule->call(function () {
             $reminderDate = Carbon::now()->addDays(3)->startOfDay();
             if ($reminderDate->isSunday()) {
@@ -234,7 +239,7 @@ class Kernel extends ConsoleKernel
             }
         })->daily();
 
-        // 9. Job สร้าง/แจ้ง penalty ถ้าผ่อนสะสมไม่ครบ (เหมือนเดิม)
+        // 10. Job สร้าง/แจ้ง penalty ถ้าผ่อนสะสมไม่ครบ (เหมือนเดิม)
         $schedule->call(function () {
             $installments = InstallmentRequest::where('status', 'approved')->get();
 
@@ -274,7 +279,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('23:59');
 
-        // 10. คำนวณค่าคอมมิชชั่น (เหมือนเดิม)
+        // 11. คำนวณค่าคอมมิชชั่น (เหมือนเดิม)
         $schedule->command('commission:calculate')->dailyAt('23:59');
     }
 

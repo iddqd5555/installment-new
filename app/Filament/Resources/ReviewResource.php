@@ -50,4 +50,19 @@ class ReviewResource extends Resource
             'edit' => Pages\EditReview::route('/{record}/edit'),
         ];
     }
+
+    // ------- PATCH สำคัญสำหรับ shared hosting ที่ symlink ใช้ไม่ได้ ---------
+    public static function afterSave($record)
+    {
+        // ถ้ามีการอัพโหลดรูปใหม่ จะ copy รูปจาก storage/app/public/reviews ไป public/storage/reviews ทันที
+        if ($record->image_url) {
+            $src = storage_path('app/public/reviews/' . basename($record->image_url));
+            $dst = public_path('storage/reviews/' . basename($record->image_url));
+            if (file_exists($src)) {
+                @mkdir(dirname($dst), 0775, true);
+                @copy($src, $dst);
+            }
+        }
+    }
+    // ------------------------------------------------------------------------
 }

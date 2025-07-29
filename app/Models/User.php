@@ -30,9 +30,20 @@ class User extends Authenticatable
     ];
 
     // --- RELATION ---
+
     public function installmentRequests()
     {
-        return $this->hasMany(InstallmentRequest::class);
+        return $this->hasMany(\App\Models\InstallmentRequest::class, 'user_id');
+    }
+
+    public function userLocationLogs()
+    {
+        return $this->hasMany(\App\Models\UserLocationLog::class, 'user_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(\App\Models\UserDocument::class, 'user_id');
     }
 
     // --- เงินในกระเป๋า ---
@@ -40,10 +51,4 @@ class User extends Authenticatable
     {
         return $this->advance_payment ?: 0;
     }
-
-    public function documents()
-    {
-        return $this->hasMany(\App\Models\UserDocument::class);
-    }
-
 }

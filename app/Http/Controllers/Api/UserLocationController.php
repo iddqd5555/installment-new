@@ -15,51 +15,47 @@ class UserLocationController extends Controller
         $lng = $request->input('lng');
         $ip = $request->ip();
         $publicIp = $request->input('public_ip');
+        $isMocked = $request->input('is_mocked');
 
+        // -- ตรวจสอบเงื่อนไขสำคัญ --
         $vpn_status = 'ok';
         $notes = '';
-
-        $isMocked = $request->input('is_mocked');
         if ($isMocked === true || $isMocked === 'true' || $isMocked == 1) {
             $vpn_status = 'mock';
             $notes .= 'พบการจำลองตำแหน่ง (Mock Location). ';
         }
-
         if (!$lat || !$lng || !$this->isInThailand($lat, $lng)) {
             $vpn_status = 'foreign';
             $notes .= 'ตำแหน่งอยู่นอกประเทศไทย. ';
         }
-
         if (!$this->isThaiIP($publicIp ?? $ip)) {
             $vpn_status = 'vpn';
             $notes .= 'ตรวจพบ IP ไม่ใช่ประเทศไทย (VPN?). ';
         }
 
-        \Log::info('GPS Request Data', [
-            'user_id' => $user->id,
-            'lat' => $lat,
-            'lng' => $lng,
-            'ip' => $ip,
-            'public_ip' => $publicIp,
-            'is_mocked' => $isMocked,
-            'vpn_status' => $vpn_status,
-            'notes' => $notes,
-        ]);
+        // -- Log เฉพาะเมื่อ "user เปลี่ยนตำแหน่งจริง" หรือ vpn_status ไม่ใช่ ok --
+        $shouldLog = false;
+        if ($vpn_status !== 'ok') $shouldLog = true;
+        else if ($user->latitude != $lat || $user->longitude != $lng) $shouldLog = true;
 
-        UserLocationLog::create([
-            'user_id' => $user->id,
-            'name' => $user->first_name . ' ' . $user->last_name,
-            'phone' => $user->phone,
-            'ip' => $publicIp ?: $ip, // บันทึก public IP จริง
-            'latitude' => $lat,
-            'longitude' => $lng,
-            'vpn_status' => $vpn_status,
-            'notes' => $notes,
-        ]);
+        if ($shouldLog) {
+            UserLocationLog::create([
+                'user_id' => $user->id,
+                'name' => $user->first_name . ' ' . $user->last_name,
+                'phone' => $user->phone,
+                'ip' => $publicIp ?: $ip,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'vpn_status' => $vpn_status,
+                'notes' => $notes,
+            ]);
+        }
 
+        // -- อัปเดตตำแหน่งล่าสุดใน users เฉพาะกรณีตำแหน่งปกติ
         if ($vpn_status === 'ok') {
             $user->latitude = $lat;
             $user->longitude = $lng;
+            $user->location_updated_at = now();
             $user->save();
             return response()->json(['status' => 'ok']);
         } else {

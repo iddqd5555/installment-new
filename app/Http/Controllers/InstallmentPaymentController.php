@@ -11,6 +11,7 @@ use App\Models\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Services\ActivityLogger;
 
 class InstallmentPaymentController extends Controller
 {
@@ -75,7 +76,6 @@ class InstallmentPaymentController extends Controller
         $rawText = $result['raw_text'] ?? '';
         $allFragments = array_unique(array_merge($accountsOCR, [$result['account'] ?? '']));
 
-        // fallback (ถ้า admin ยังไม่เคยตั้งค่าบัญชี)
         if ($bankAccounts->count() == 0) {
             $bankAccounts = collect([
                 (object)[
@@ -154,7 +154,7 @@ class InstallmentPaymentController extends Controller
 
             $due = $pay->amount - $pay->amount_paid;
             $payNow = min($due, $remain);
-            $wasPaid = $pay->status === 'paid'; // เก็บสถานะก่อนหน้า
+            $wasPaid = $pay->status === 'paid';
 
             $pay->amount_paid += $payNow;
             if ($pay->amount_paid >= $pay->amount) {
@@ -230,8 +230,6 @@ class InstallmentPaymentController extends Controller
                 'user_id' => $userId,
                 'amount' => $remain,
             ]);
-
-            // === NEW: Auto หัก advance ที่เติมเข้าไปทันที
             $this->autoDeductFromAdvance($installment);
         } else {
             $installment->save();
@@ -250,6 +248,23 @@ class InstallmentPaymentController extends Controller
                 'imgPath' => $imgPath,
             ]),
         ]);
+
+        // === เพิ่ม Log และ update last location ===
+        ActivityLogger::log(
+            $user,
+            'payment',
+            $request->ip(),
+            $request->input('lat'),
+            $request->input('lng'),
+            $request->input('is_mocked') ? 'mocked' : 'normal',
+            'อัปโหลดสลิป/ชำระเงิน'
+        );
+        $user->update([
+            'last_latitude' => $request->input('lat'),
+            'last_longitude' => $request->input('lng'),
+            'location_updated_at' => now(),
+        ]);
+        // === END ===
 
         return response()->json([
             'success' => true,
